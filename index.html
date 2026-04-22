@@ -213,6 +213,39 @@
   .mini-table tr:last-child td{border-bottom:none}
   .font-mono{font-family:var(--mono)}.text-sm{font-size:12px}.text-muted{color:var(--text3)}.text-right{text-align:right}
   .mt-2{margin-top:16px}.mt-1{margin-top:8px}
+
+  /* ── 인쇄 스타일 ── */
+  .print-doc { background:#fff; color:#000; padding:24px; font-family:'Noto Sans KR',sans-serif; max-width:800px; margin:0 auto; }
+  .print-title { font-size:22px; font-weight:900; text-align:center; border-bottom:3px solid #000; padding-bottom:12px; margin-bottom:16px; letter-spacing:4px; }
+  .print-meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+  .print-meta-box { border:1px solid #ccc; border-radius:4px; overflow:hidden; }
+  .print-info-table { width:100%; border-collapse:collapse; }
+  .print-info-table th { background:#f5f5f5; font-size:11px; font-weight:700; padding:6px 10px; border:1px solid #ddd; width:90px; text-align:left; white-space:nowrap; }
+  .print-info-table td { font-size:12px; padding:6px 10px; border:1px solid #ddd; }
+  .print-table { width:100%; border-collapse:collapse; margin-top:8px; font-size:12px; }
+  .print-table th { background:#1a237e; color:#fff; padding:8px 10px; border:1px solid #1a237e; text-align:center; font-weight:700; font-size:11px; }
+  .print-table td { padding:7px 10px; border:1px solid #ddd; }
+  .print-table tr:nth-child(even) td { background:#f9f9f9; }
+  .print-total td { background:#e8eaf6 !important; font-size:13px; }
+  .print-sign-area { display:flex; justify-content:space-between; align-items:flex-end; margin-top:24px; }
+  .print-sign-table { border-collapse:collapse; }
+  .print-sign-table th { background:#f5f5f5; padding:6px 20px; border:1px solid #ccc; font-size:11px; text-align:center; }
+  .print-sign-table td { padding:24px 20px; border:1px solid #ccc; min-width:60px; }
+  .print-company { text-align:right; }
+
+  @media print {
+    #sidebar, #topbar, .filter-bar, .btn, .pagination, #toast-container,
+    #loading-overlay, #setup-screen, .panel-header .btn { display:none !important; }
+    body { background:#fff !important; color:#000 !important; overflow:visible !important; height:auto !important; }
+    #main { overflow:visible !important; }
+    #content { overflow:visible !important; padding:0 !important; }
+    .page { display:none !important; }
+    .page.active { display:block !important; }
+    .panel { border:none !important; background:#fff !important; }
+    .print-doc { padding:0 !important; }
+    .print-table th { background:#1a237e !important; color:#fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .print-sign-table th { background:#f5f5f5 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
 </style>
 </head>
 <body>
@@ -264,6 +297,9 @@
     <div class="nav-section">기준 정보</div>
     <div class="nav-item" onclick="showPage('products')"><span class="icon">🗂️</span>품목 관리</div>
     <div class="nav-item" onclick="showPage('order')"><span class="icon">📧</span>발주 메일</div>
+    <div class="nav-section">출력 서류</div>
+    <div class="nav-item" onclick="showPage('print-order')"><span class="icon">🧾</span>발주서 출력</div>
+    <div class="nav-item" onclick="showPage('print-outbound')"><span class="icon">📋</span>출고지시서 출력</div>
     <div class="nav-item" onclick="showPage('settings')"><span class="icon">⚙️</span>설정</div>
   </nav>
   <div class="sidebar-bottom">
@@ -431,6 +467,96 @@
           <div class="panel-header"><span class="panel-title">⚠️ 부족 재고 현황</span></div>
           <div class="panel-body" id="low-stock-list"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- PRINT ORDER (발주서) -->
+    <div id="page-print-order" class="page">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header"><span class="panel-title">🧾 발주서 작성</span></div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">수신업체 (공급업체)</label><input class="form-control" id="po-vendor" placeholder="예: 대한제분(주)"></div>
+            <div class="form-group"><label class="form-label">발주일자</label><input class="form-control" type="date" id="po-date"></div>
+            <div class="form-group"><label class="form-label">납품요청일</label><input class="form-control" type="date" id="po-due"></div>
+            <div class="form-group"><label class="form-label">납품장소</label><input class="form-control" id="po-place" placeholder="예: K1 공장 입고창고"></div>
+            <div class="form-group"><label class="form-label">담당자</label><input class="form-control" id="po-manager" placeholder="담당자명"></div>
+            <div class="form-group"><label class="form-label">연락처</label><input class="form-control" id="po-tel" placeholder="010-0000-0000"></div>
+            <div class="form-group full"><label class="form-label">특이사항</label><textarea class="form-control" id="po-note" rows="2" placeholder="배송 시 주의사항, 특별 요청 등..."></textarea></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 발주 품목 입력 -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header">
+          <span class="panel-title">발주 품목</span>
+          <button class="btn btn-primary" onclick="addPoItem()">＋ 품목 추가</button>
+        </div>
+        <div class="panel-body">
+          <table class="data-table" style="width:100%">
+            <thead><tr><th>품목명</th><th>규격/단위</th><th class="text-right">발주수량</th><th>단가(원)</th><th class="text-right">금액(원)</th><th>비고</th><th></th></tr></thead>
+            <tbody id="po-items-tbody"></tbody>
+            <tfoot>
+              <tr style="background:var(--bg3)">
+                <td colspan="4" style="text-align:right;font-weight:700;padding:10px 12px">합계금액</td>
+                <td class="num" style="font-weight:700;font-size:14px" id="po-total">0 원</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px">
+        <button class="btn btn-ghost" onclick="addPoItemFromStock()">📦 부족재고 자동추가</button>
+        <button class="btn btn-primary" onclick="printDoc('po')">🖨️ 발주서 인쇄</button>
+      </div>
+
+      <!-- 인쇄 미리보기 -->
+      <div id="po-preview" class="panel" style="display:none">
+        <div class="panel-header"><span class="panel-title">📄 미리보기</span></div>
+        <div class="panel-body" id="po-preview-body"></div>
+      </div>
+    </div>
+
+    <!-- PRINT OUTBOUND (출고지시서) -->
+    <div id="page-print-outbound" class="page">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header"><span class="panel-title">📋 출고지시서 작성</span></div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">출고지시번호</label><input class="form-control" id="oi-no" placeholder="자동생성"></div>
+            <div class="form-group"><label class="form-label">출고일자</label><input class="form-control" type="date" id="oi-date"></div>
+            <div class="form-group"><label class="form-label">출고 공장</label><select class="form-control" id="oi-factory"><option value="">선택</option><option>K1</option><option>K2</option><option>K3</option></select></div>
+            <div class="form-group"><label class="form-label">수령업체/부서</label><input class="form-control" id="oi-receiver" placeholder="예: 생산1라인, 서울물류센터"></div>
+            <div class="form-group"><label class="form-label">출고담당자</label><input class="form-control" id="oi-manager"></div>
+            <div class="form-group"><label class="form-label">운송방법</label><select class="form-control" id="oi-transport"><option>자체운송</option><option>택배</option><option>화물</option><option>직접수령</option></select></div>
+            <div class="form-group full"><label class="form-label">출고 목적 / 비고</label><textarea class="form-control" id="oi-note" rows="2" placeholder="출고 목적, 특이사항..."></textarea></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 출고 품목 입력 -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header">
+          <span class="panel-title">출고 품목</span>
+          <button class="btn btn-primary" onclick="addOiItem()">＋ 품목 추가</button>
+        </div>
+        <div class="panel-body">
+          <table class="data-table" style="width:100%">
+            <thead><tr><th>품목명</th><th>단위</th><th class="text-right">지시수량</th><th class="text-right">실출고수량</th><th>비고</th><th></th></tr></thead>
+            <tbody id="oi-items-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px">
+        <button class="btn btn-ghost" onclick="loadFromOutbound()">📤 최근출고 불러오기</button>
+        <button class="btn btn-primary" onclick="printDoc('oi')">🖨️ 출고지시서 인쇄</button>
+      </div>
+
+      <div id="oi-preview" class="panel" style="display:none">
+        <div class="panel-header"><span class="panel-title">📄 미리보기</span></div>
+        <div class="panel-body" id="oi-preview-body"></div>
       </div>
     </div>
 
@@ -632,15 +758,17 @@ async function refreshAll() {
 // ══════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════
-const PAGE_TITLES = { dashboard:'대시보드', inventory:'재고 현황', inbound:'입고 관리', outbound:'출고 관리', transfer:'이동 처리', adjustment:'재고 조정', history:'수불 이력', report:'명세서 출력', products:'품목 관리', order:'발주 메일', settings:'설정' };
+const PAGE_TITLES = { dashboard:'대시보드', inventory:'재고 현황', inbound:'입고 관리', outbound:'출고 관리', transfer:'이동 처리', adjustment:'재고 조정', history:'수불 이력', report:'명세서 출력', products:'품목 관리', order:'발주 메일', 'print-order':'발주서 출력', 'print-outbound':'출고지시서 출력', settings:'설정' };
 const PAGE_ACTIONS = {
-  inventory:  `<button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
-  inbound:    `<button class="btn btn-success" onclick="openInboundModal()">＋ 입고 등록</button>`,
-  outbound:   `<button class="btn btn-danger"  onclick="openOutboundModal()">＋ 출고 등록</button>`,
-  transfer:   `<button class="btn btn-primary" onclick="openTransferModal()">＋ 이동 처리</button>`,
-  adjustment: `<button class="btn btn-primary" onclick="openAdjustModal()">＋ 재고 조정</button>`,
-  report:     `<button class="btn btn-ghost" onclick="window.print()">🖨️ 인쇄</button>`,
-  products:   `<button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
+  inventory:        `<button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
+  inbound:          `<button class="btn btn-success" onclick="openInboundModal()">＋ 입고 등록</button>`,
+  outbound:         `<button class="btn btn-danger"  onclick="openOutboundModal()">＋ 출고 등록</button>`,
+  transfer:         `<button class="btn btn-primary" onclick="openTransferModal()">＋ 이동 처리</button>`,
+  adjustment:       `<button class="btn btn-primary" onclick="openAdjustModal()">＋ 재고 조정</button>`,
+  report:           `<button class="btn btn-ghost" onclick="window.print()">🖨️ 인쇄</button>`,
+  products:         `<button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
+  'print-order':    `<button class="btn btn-primary" onclick="printDoc('po')">🖨️ 발주서 인쇄</button>`,
+  'print-outbound': `<button class="btn btn-primary" onclick="printDoc('oi')">🖨️ 출고지시서 인쇄</button>`,
 };
 
 let currentPage = 'dashboard';
@@ -665,8 +793,10 @@ function renderCurrentPage() {
   if (currentPage === 'adjustment') renderTablePage('adjustment',1);
   if (currentPage === 'history')    renderTablePage('history',1);
   if (currentPage === 'products')   renderTablePage('products',1);
-  if (currentPage === 'report')     { initReport(); buildReport(); }
-  if (currentPage === 'order')      renderOrderPage();
+  if (currentPage === 'report')         { initReport(); buildReport(); }
+  if (currentPage === 'order')          renderOrderPage();
+  if (currentPage === 'print-order')    initPrintOrder();
+  if (currentPage === 'print-outbound') initPrintOutbound();
 }
 
 // ══════════════════════════════════════════════
@@ -1030,6 +1160,235 @@ async function submitProduct() {
 }
 
 // ══════════════════════════════════════════════
+// 🧾 발주서 (Purchase Order)
+// ══════════════════════════════════════════════
+let poItems = [];
+let oiItems = [];
+
+function initPrintOrder() {
+  const today = new Date().toISOString().slice(0,10);
+  const due   = new Date(Date.now() + 7*86400000).toISOString().slice(0,10);
+  if (!document.getElementById('po-date').value)    document.getElementById('po-date').value = today;
+  if (!document.getElementById('po-due').value)     document.getElementById('po-due').value  = due;
+  if (!document.getElementById('po-manager').value) document.getElementById('po-manager').value = CFG.user;
+  if (poItems.length === 0) addPoItem();
+  renderPoItems();
+}
+
+function addPoItem(name='', unit='', qty=0, price=0, note='') {
+  poItems.push({ name, unit, qty, price, note });
+  renderPoItems();
+}
+
+function addPoItemFromStock() {
+  const low = STATE.products.filter(p => (n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고')) < n(p,'안전재고'));
+  if (!low.length) { toast('부족 재고가 없습니다','info'); return; }
+  low.forEach(p => {
+    const need = n(p,'안전재고') - (n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고'));
+    poItems.push({ name: p['품목명']||'', unit: p['단위']||'', qty: need, price: 0, note: '안전재고 부족' });
+  });
+  renderPoItems();
+  toast(`${low.length}개 부족 품목 추가됨`, 'success');
+}
+
+function renderPoItems() {
+  const tbody = document.getElementById('po-items-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = poItems.map((item, i) => `
+    <tr>
+      <td><input class="form-control" value="${item.name}" oninput="poItems[${i}].name=this.value" placeholder="품목명" style="min-width:120px"></td>
+      <td><input class="form-control" value="${item.unit}" oninput="poItems[${i}].unit=this.value" placeholder="kg" style="width:70px"></td>
+      <td><input class="form-control num" type="number" value="${item.qty}" oninput="poItems[${i}].qty=Number(this.value);updatePoTotal()" style="width:90px"></td>
+      <td><input class="form-control num" type="number" value="${item.price}" oninput="poItems[${i}].price=Number(this.value);updatePoTotal()" placeholder="0" style="width:110px"></td>
+      <td class="num">${(item.qty * item.price).toLocaleString()} 원</td>
+      <td><input class="form-control" value="${item.note}" oninput="poItems[${i}].note=this.value" placeholder="비고" style="min-width:100px"></td>
+      <td><button class="btn btn-ghost" style="padding:4px 8px;color:var(--red)" onclick="poItems.splice(${i},1);renderPoItems()">✕</button></td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:16px">품목을 추가하세요</td></tr>';
+  updatePoTotal();
+}
+
+function updatePoTotal() {
+  const total = poItems.reduce((s,i) => s + (i.qty * i.price), 0);
+  const el = document.getElementById('po-total');
+  if (el) el.textContent = total.toLocaleString() + ' 원';
+}
+
+// ══════════════════════════════════════════════
+// 📋 출고지시서 (Outbound Instruction)
+// ══════════════════════════════════════════════
+function initPrintOutbound() {
+  const today = new Date().toISOString().slice(0,10);
+  if (!document.getElementById('oi-date').value)    document.getElementById('oi-date').value = today;
+  if (!document.getElementById('oi-manager').value) document.getElementById('oi-manager').value = CFG.user;
+  if (!document.getElementById('oi-no').value) {
+    document.getElementById('oi-no').value = 'OI-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
+  }
+  if (oiItems.length === 0) addOiItem();
+  renderOiItems();
+}
+
+function addOiItem(name='', unit='', ordered=0, actual=0, note='') {
+  oiItems.push({ name, unit, ordered, actual, note });
+  renderOiItems();
+}
+
+function loadFromOutbound() {
+  const recent = STATE.outbound.slice(0, 5);
+  if (!recent.length) { toast('출고 이력이 없습니다','info'); return; }
+  recent.forEach(r => {
+    oiItems.push({ name: r['품목명']||'', unit: r['단위']||'', ordered: Number(r['수량']||0), actual: 0, note: r['목적지']||'' });
+  });
+  renderOiItems();
+  toast(`최근 출고 ${recent.length}건 불러옴`, 'success');
+}
+
+function renderOiItems() {
+  const tbody = document.getElementById('oi-items-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = oiItems.map((item, i) => `
+    <tr>
+      <td><input class="form-control" value="${item.name}" oninput="oiItems[${i}].name=this.value" placeholder="품목명" style="min-width:140px"></td>
+      <td><input class="form-control" value="${item.unit}" oninput="oiItems[${i}].unit=this.value" placeholder="단위" style="width:70px"></td>
+      <td><input class="form-control num" type="number" value="${item.ordered}" oninput="oiItems[${i}].ordered=Number(this.value)" style="width:100px"></td>
+      <td><input class="form-control num" type="number" value="${item.actual}"  oninput="oiItems[${i}].actual=Number(this.value)"  placeholder="실출고" style="width:100px"></td>
+      <td><input class="form-control" value="${item.note}" oninput="oiItems[${i}].note=this.value" placeholder="비고" style="min-width:100px"></td>
+      <td><button class="btn btn-ghost" style="padding:4px 8px;color:var(--red)" onclick="oiItems.splice(${i},1);renderOiItems()">✕</button></td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:16px">품목을 추가하세요</td></tr>';
+}
+
+// ══════════════════════════════════════════════
+// 🖨️ 인쇄 공통
+// ══════════════════════════════════════════════
+function printDoc(type) {
+  const today = new Date().toLocaleDateString('ko-KR');
+
+  let html = '';
+  if (type === 'po') {
+    const vendor   = document.getElementById('po-vendor').value || '　';
+    const date     = document.getElementById('po-date').value || today;
+    const due      = document.getElementById('po-due').value || '　';
+    const place    = document.getElementById('po-place').value || '　';
+    const manager  = document.getElementById('po-manager').value || CFG.user;
+    const tel      = document.getElementById('po-tel').value || '　';
+    const note     = document.getElementById('po-note').value || '';
+    const total    = poItems.reduce((s,i) => s + (i.qty * i.price), 0);
+    const poNo     = 'PO-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
+
+    html = `
+      <div class="print-doc">
+        <div class="print-title">발 주 서</div>
+        <div class="print-meta-grid">
+          <div class="print-meta-box">
+            <table class="print-info-table">
+              <tr><th>수&nbsp;&nbsp;&nbsp;신</th><td>${vendor}</td></tr>
+              <tr><th>납품장소</th><td>${place}</td></tr>
+              <tr><th>납품요청일</th><td>${due}</td></tr>
+            </table>
+          </div>
+          <div class="print-meta-box">
+            <table class="print-info-table">
+              <tr><th>발주번호</th><td>${poNo}</td></tr>
+              <tr><th>발주일자</th><td>${date}</td></tr>
+              <tr><th>담당자</th><td>${manager} (${tel})</td></tr>
+            </table>
+          </div>
+        </div>
+        <p style="margin:12px 0 8px;font-size:13px">아래와 같이 발주하오니 납품하여 주시기 바랍니다.</p>
+        <table class="print-table">
+          <thead><tr><th>No</th><th>품목명</th><th>규격/단위</th><th>수량</th><th>단가(원)</th><th>금액(원)</th><th>비고</th></tr></thead>
+          <tbody>
+            ${poItems.map((item,i) => `<tr>
+              <td style="text-align:center">${i+1}</td>
+              <td>${item.name}</td><td style="text-align:center">${item.unit}</td>
+              <td style="text-align:right">${item.qty.toLocaleString()}</td>
+              <td style="text-align:right">${item.price.toLocaleString()}</td>
+              <td style="text-align:right">${(item.qty*item.price).toLocaleString()}</td>
+              <td>${item.note}</td></tr>`).join('')}
+            <tr class="print-total"><td colspan="5" style="text-align:right"><strong>합계금액</strong></td><td style="text-align:right"><strong>${total.toLocaleString()} 원</strong></td><td></td></tr>
+          </tbody>
+        </table>
+        ${note ? `<p style="margin-top:12px;font-size:12px">※ ${note}</p>` : ''}
+        <div class="print-sign-area">
+          <table class="print-sign-table">
+            <tr><th colspan="3">결&nbsp;&nbsp;&nbsp;재</th></tr>
+            <tr><th>담당</th><th>팀장</th><th>본부장</th></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          </table>
+          <div class="print-company">
+            <div style="font-size:16px;font-weight:700;margin-bottom:4px">생산지원1팀</div>
+            <div style="font-size:12px">발주일: ${date}</div>
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('po-preview-body').innerHTML = html;
+    document.getElementById('po-preview').style.display = 'block';
+
+  } else {
+    const oiNo     = document.getElementById('oi-no').value;
+    const date     = document.getElementById('oi-date').value || today;
+    const factory  = document.getElementById('oi-factory').value || '　';
+    const receiver = document.getElementById('oi-receiver').value || '　';
+    const manager  = document.getElementById('oi-manager').value || CFG.user;
+    const transport= document.getElementById('oi-transport').value || '자체운송';
+    const note     = document.getElementById('oi-note').value || '';
+
+    html = `
+      <div class="print-doc">
+        <div class="print-title">출 고 지 시 서</div>
+        <div class="print-meta-grid">
+          <div class="print-meta-box">
+            <table class="print-info-table">
+              <tr><th>지시번호</th><td>${oiNo}</td></tr>
+              <tr><th>출고공장</th><td>${factory}</td></tr>
+              <tr><th>수령업체/부서</th><td>${receiver}</td></tr>
+            </table>
+          </div>
+          <div class="print-meta-box">
+            <table class="print-info-table">
+              <tr><th>출고일자</th><td>${date}</td></tr>
+              <tr><th>운송방법</th><td>${transport}</td></tr>
+              <tr><th>담당자</th><td>${manager}</td></tr>
+            </table>
+          </div>
+        </div>
+        <p style="margin:12px 0 8px;font-size:13px">아래 품목에 대해 출고 지시합니다.</p>
+        <table class="print-table">
+          <thead><tr><th>No</th><th>품목명</th><th>단위</th><th>지시수량</th><th>실출고수량</th><th>확인</th><th>비고</th></tr></thead>
+          <tbody>
+            ${oiItems.map((item,i) => `<tr>
+              <td style="text-align:center">${i+1}</td>
+              <td>${item.name}</td>
+              <td style="text-align:center">${item.unit}</td>
+              <td style="text-align:right">${item.ordered.toLocaleString()}</td>
+              <td style="text-align:right">${item.actual > 0 ? item.actual.toLocaleString() : '　'}</td>
+              <td style="text-align:center">□</td>
+              <td>${item.note}</td></tr>`).join('')}
+          </tbody>
+        </table>
+        ${note ? `<p style="margin-top:12px;font-size:12px">※ ${note}</p>` : ''}
+        <div class="print-sign-area">
+          <table class="print-sign-table">
+            <tr><th colspan="3">결&nbsp;&nbsp;&nbsp;재</th></tr>
+            <tr><th>담당</th><th>팀장</th><th>본부장</th></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          </table>
+          <div class="print-company">
+            <div style="font-size:16px;font-weight:700;margin-bottom:4px">생산지원1팀</div>
+            <div style="font-size:12px">출고일: ${date}</div>
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('oi-preview-body').innerHTML = html;
+    document.getElementById('oi-preview').style.display = 'block';
+  }
+
+  // 인쇄 실행
+  setTimeout(() => window.print(), 300);
+}
+
+// ══════════════════════════════════════════════
 // SETTINGS
 // ══════════════════════════════════════════════
 function saveSetup() {
@@ -1073,8 +1432,18 @@ window.addEventListener('load', () => {
     refreshAll();
   }
 
-  // 30초마다 자동 새로고침
-  setInterval(refreshAll, 30000);
+  // 30초마다 자동 새로고침 (모달 열림 or 입력 중이면 건너뜀)
+  setInterval(() => {
+    const modalOpen    = document.querySelector('.modal-overlay.open');
+    const tag          = document.activeElement?.tagName || '';
+    const inputFocused = ['INPUT','TEXTAREA','SELECT'].includes(tag);
+    if (modalOpen || inputFocused) {
+      // 사용 중 — 건너뜀, 상단에 조용히 표시
+      document.getElementById('sync-label').textContent = '대기 중 (입력 중)';
+      return;
+    }
+    refreshAll();
+  }, 30000);
 });
 </script>
 </body>
