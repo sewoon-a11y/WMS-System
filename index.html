@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WMS — 생산지원 창고관리시스템</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+  :root {
+    --bg:#0a0e1a; --bg2:#0f1526; --bg3:#141c35;
+    --panel:#111827; --panel2:#1a2235;
+    --border:#1e2d4a; --border2:#253654;
+    --accent:#2563eb; --accent2:#3b82f6; --accent-glow:rgba(37,99,235,.25);
+    --green:#10b981; --green-dim:rgba(16,185,129,.15);
+    --red:#ef4444; --red-dim:rgba(239,68,68,.15);
+    --yellow:#f59e0b; --yellow-dim:rgba(245,158,11,.15);
+    --purple:#8b5cf6; --purple-dim:rgba(139,92,246,.15);
+    --text:#e2e8f0; --text2:#94a3b8; --text3:#64748b;
+    --font:'Noto Sans KR',sans-serif; --mono:'JetBrains Mono',monospace;
+    --radius:8px; --shadow:0 4px 24px rgba(0,0,0,.4);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;height:100vh}
+
+  /* ── SIDEBAR ── */
+  #sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
+  .logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+  .logo-title{font-size:15px;font-weight:700;color:var(--accent2);letter-spacing:-.3px}
+  .logo-sub{font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+  .factory-badges{display:flex;gap:4px;margin-top:8px}
+  .fbadge{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;font-family:var(--mono)}
+  .fbadge.k1{background:rgba(37,99,235,.2);color:#60a5fa;border:1px solid rgba(37,99,235,.4)}
+  .fbadge.k2{background:rgba(16,185,129,.2);color:#34d399;border:1px solid rgba(16,185,129,.4)}
+  .fbadge.k3{background:rgba(139,92,246,.2);color:#a78bfa;border:1px solid rgba(139,92,246,.4)}
+  nav{flex:1;padding:12px 0;overflow-y:auto}
+  .nav-section{padding:6px 18px 4px;font-size:9px;color:var(--text3);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-top:6px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border-left:2px solid transparent}
+  .nav-item:hover{background:var(--bg3);color:var(--text)}
+  .nav-item.active{background:rgba(37,99,235,.12);color:var(--accent2);border-left-color:var(--accent2)}
+  .nav-item .icon{font-size:15px;width:18px;text-align:center}
+  .sidebar-bottom{padding:12px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--text3)}
+  .online-dot{width:6px;height:6px;background:var(--green);border-radius:50%;display:inline-block;margin-right:5px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* ── MAIN ── */
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  #topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+  .page-title{font-size:16px;font-weight:700;flex:1}
+  .topbar-actions{display:flex;gap:8px;align-items:center}
+  .sync-status{font-size:11px;color:var(--text3);font-family:var(--mono);display:flex;align-items:center;gap:5px}
+  .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+  .sync-dot.loading{background:var(--yellow);animation:pulse 1s infinite}
+  .sync-dot.error{background:var(--red)}
+
+  .btn{padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:var(--font)}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent2)}
+  .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+  .btn-ghost:hover{background:var(--bg3);color:var(--text)}
+  .btn-danger{background:var(--red);color:#fff}
+  .btn-success{background:var(--green);color:#fff}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+
+  #content{flex:1;overflow-y:auto;padding:24px}
+  .page{display:none}
+  .page.active{display:block}
+
+  /* ── KPI ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .kpi-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+  .kpi-card.blue::before{background:var(--accent2)}
+  .kpi-card.green::before{background:var(--green)}
+  .kpi-card.yellow::before{background:var(--yellow)}
+  .kpi-card.purple::before{background:var(--purple)}
+  .kpi-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+  .kpi-value{font-size:28px;font-weight:900;margin:6px 0 4px;font-family:var(--mono)}
+  .kpi-card.blue .kpi-value{color:var(--accent2)}
+  .kpi-card.green .kpi-value{color:var(--green)}
+  .kpi-card.yellow .kpi-value{color:var(--yellow)}
+  .kpi-card.purple .kpi-value{color:var(--purple)}
+  .kpi-sub{font-size:11px;color:var(--text3)}
+  .kpi-icon{position:absolute;right:14px;top:14px;font-size:22px;opacity:.2}
+
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .panel-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .panel-title{font-size:13px;font-weight:700}
+  .panel-body{padding:16px 18px}
+
+  /* bars */
+  .factory-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .factory-label{font-size:11px;font-weight:700;width:28px;font-family:var(--mono)}
+  .factory-label.k1{color:#60a5fa}.factory-label.k2{color:#34d399}.factory-label.k3{color:#a78bfa}
+  .bar-track{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+  .bar-fill.k1{background:linear-gradient(90deg,#1d4ed8,#60a5fa)}
+  .bar-fill.k2{background:linear-gradient(90deg,#059669,#34d399)}
+  .bar-fill.k3{background:linear-gradient(90deg,#7c3aed,#a78bfa)}
+  .bar-pct{font-size:11px;font-family:var(--mono);color:var(--text2);width:36px;text-align:right}
+
+  /* alerts */
+  .alert-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .alert-item:last-child{border-bottom:none}
+  .alert-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+  .alert-dot.red{background:var(--red)}.alert-dot.yellow{background:var(--yellow)}.alert-dot.green{background:var(--green)}
+  .alert-text{font-size:12px;color:var(--text2);line-height:1.5}
+
+  /* table */
+  .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+  .filter-input,.filter-select{background:var(--panel);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:13px;font-family:var(--font);padding:8px 12px;outline:none;transition:border-color .15s}
+  .filter-input:focus,.filter-select:focus{border-color:var(--accent2)}
+  .filter-input{flex:1;min-width:200px}
+  .filter-select option{background:var(--panel)}
+  .data-table{width:100%;border-collapse:collapse}
+  .data-table th{font-size:11px;color:var(--text3);font-weight:700;text-align:left;padding:10px 12px;border-bottom:2px solid var(--border2);text-transform:uppercase;letter-spacing:.5px;background:var(--panel2);white-space:nowrap}
+  .data-table td{font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+  .data-table tr:hover td{background:rgba(255,255,255,.02)}
+  .data-table .num{font-family:var(--mono);text-align:right}
+  .table-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .table-scroll{overflow-x:auto}
+  .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)}
+  .page-btns{display:flex;gap:4px}
+  .page-btn{padding:4px 10px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:var(--font)}
+  .page-btn:hover{background:var(--bg3)}
+  .page-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  .badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700}
+  .badge-in{background:var(--green-dim);color:var(--green)}
+  .badge-out{background:var(--red-dim);color:var(--red)}
+  .badge-move{background:var(--yellow-dim);color:var(--yellow)}
+  .badge-adj{background:var(--purple-dim);color:var(--purple)}
+
+  /* inventory cards */
+  .inv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .inv-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .15s;cursor:pointer}
+  .inv-card:hover{border-color:var(--border2)}
+  .inv-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+  .inv-item-name{font-size:14px;font-weight:700}
+  .inv-item-code{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+  .inv-stock-row{display:flex;gap:8px;margin-top:10px}
+  .inv-stock-box{flex:1;background:var(--bg3);border-radius:6px;padding:8px;text-align:center}
+  .inv-stock-label{font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase}
+  .inv-stock-val{font-size:16px;font-weight:700;font-family:var(--mono);margin-top:2px}
+  .inv-stock-val.k1{color:#60a5fa}.inv-stock-val.k2{color:#34d399}.inv-stock-val.k3{color:#a78bfa}
+  .inv-total{font-size:11px;color:var(--text3);margin-top:8px}
+  .inv-warning{color:var(--yellow);font-size:11px;margin-top:4px}
+
+  /* modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--panel2);border:1px solid var(--border2);border-radius:12px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);animation:slideIn .2s ease}
+  @keyframes slideIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-title{font-size:15px;font-weight:700}
+  .modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1}
+  .modal-body{padding:20px 24px}
+  .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-group.full{grid-column:1/-1}
+  .form-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+  .form-control{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:13px;font-family:var(--font);padding:9px 12px;outline:none;transition:border-color .15s}
+  .form-control:focus{border-color:var(--accent2)}
+  textarea.form-control{resize:vertical;min-height:70px}
+
+  /* transfer visual */
+  .transfer-visual{display:flex;align-items:center;gap:16px;background:var(--bg3);border-radius:var(--radius);padding:16px;margin:14px 0}
+  .transfer-box{flex:1;background:var(--panel);border:2px solid var(--border2);border-radius:var(--radius);padding:12px;text-align:center}
+  .transfer-box.from{border-color:var(--red)}.transfer-box.to{border-color:var(--green)}
+  .tf-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+  .tf-label.from{color:var(--red)}.tf-label.to{color:var(--green)}
+  .tf-name{font-size:14px;font-weight:700}
+
+  /* report */
+  .report-header-print{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--border2);border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start}
+  .report-title-area h2{font-size:20px;font-weight:900;color:var(--accent2)}
+  .report-title-area p{font-size:12px;color:var(--text3);margin-top:4px}
+  .report-meta{text-align:right;font-size:11px;color:var(--text3);line-height:1.8;font-family:var(--mono)}
+
+  /* loading overlay */
+  #loading-overlay{display:none;position:fixed;inset:0;background:rgba(10,14,26,.8);z-index:9000;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  #loading-overlay.show{display:flex}
+  .spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--accent2);border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{font-size:13px;color:var(--text2)}
+
+  /* setup screen */
+  #setup-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:8000;align-items:center;justify-content:center}
+  #setup-screen.show{display:flex}
+  .setup-box{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:40px;max-width:560px;width:95%;text-align:center}
+  .setup-box h2{font-size:22px;font-weight:900;color:var(--accent2);margin-bottom:8px}
+  .setup-box p{color:var(--text2);font-size:14px;line-height:1.7;margin-bottom:20px}
+  .setup-url-input{width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:13px;font-family:var(--mono);outline:none;margin-bottom:12px}
+  .setup-url-input:focus{border-color:var(--accent2)}
+
+  /* toast */
+  #toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+  .toast{background:var(--panel2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 16px;font-size:13px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;animation:toastIn .3s ease;min-width:240px}
+  @keyframes toastIn{from{transform:translateX(50px);opacity:0}to{transform:translateX(0);opacity:1}}
+  .toast.success{border-left:3px solid var(--green)}
+  .toast.error{border-left:3px solid var(--red)}
+  .toast.info{border-left:3px solid var(--accent2)}
+
+  .separator{height:1px;background:var(--border);margin:16px 0}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+  .mini-table{width:100%;border-collapse:collapse}
+  .mini-table th{font-size:10px;color:var(--text3);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px}
+  .mini-table td{font-size:12px;padding:8px 8px;border-bottom:1px solid var(--border);color:var(--text2)}
+  .mini-table tr:last-child td{border-bottom:none}
+  .font-mono{font-family:var(--mono)}.text-sm{font-size:12px}.text-muted{color:var(--text3)}.text-right{text-align:right}
+  .mt-2{margin-top:16px}.mt-1{margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN (최초 1회) -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <div style="font-size:48px;margin-bottom:16px">📦</div>
+    <h2>WMS 시스템 설정</h2>
+    <p>Google Apps Script 웹 앱 URL을 입력하세요.<br>한 번 입력하면 자동으로 저장됩니다.</p>
+    <input class="setup-url-input" id="setup-url" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+    <br>
+    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="saveSetup()">연결하기</button>
+    <p style="margin-top:16px;font-size:11px;color:var(--text3)">
+      Apps Script 배포 방법: 구글 시트 → 확장 프로그램 → Apps Script → 배포 → 웹 앱으로 배포
+    </p>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">데이터 불러오는 중...</div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-title">📦 WMS System</div>
+    <div class="logo-sub">생산지원1팀 · 실시간연동</div>
+    <div class="factory-badges">
+      <span class="fbadge k1">K1</span>
+      <span class="fbadge k2">K2</span>
+      <span class="fbadge k3">K3</span>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-section">개요</div>
+    <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">🏠</span>대시보드</div>
+    <div class="nav-section">재고 관리</div>
+    <div class="nav-item" onclick="showPage('inventory')"><span class="icon">📊</span>재고 현황</div>
+    <div class="nav-item" onclick="showPage('inbound')"><span class="icon">📥</span>입고 관리</div>
+    <div class="nav-item" onclick="showPage('outbound')"><span class="icon">📤</span>출고 관리</div>
+    <div class="nav-item" onclick="showPage('transfer')"><span class="icon">🔄</span>이동 처리</div>
+    <div class="nav-item" onclick="showPage('adjustment')"><span class="icon">⚖️</span>재고 조정</div>
+    <div class="nav-section">이력 & 보고서</div>
+    <div class="nav-item" onclick="showPage('history')"><span class="icon">📋</span>수불 이력</div>
+    <div class="nav-item" onclick="showPage('report')"><span class="icon">📄</span>명세서 출력</div>
+    <div class="nav-section">기준 정보</div>
+    <div class="nav-item" onclick="showPage('products')"><span class="icon">🗂️</span>품목 관리</div>
+    <div class="nav-item" onclick="showPage('order')"><span class="icon">📧</span>발주 메일</div>
+    <div class="nav-item" onclick="showPage('settings')"><span class="icon">⚙️</span>설정</div>
+  </nav>
+  <div class="sidebar-bottom">
+    <span class="online-dot"></span><span id="current-user">두세운</span> 님
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <span class="page-title" id="page-title">대시보드</span>
+    <div class="sync-status">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">연결됨</span>
+    </div>
+    <div class="topbar-actions" id="topbar-actions">
+      <button class="btn btn-ghost" onclick="refreshAll()">🔄 새로고침</button>
+    </div>
+  </div>
+  <div id="content">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="kpi-grid">
+        <div class="kpi-card blue"><div class="kpi-icon">📦</div><div class="kpi-label">총 품목 수</div><div class="kpi-value" id="kpi-items">-</div><div class="kpi-sub">등록된 자재·제품</div></div>
+        <div class="kpi-card green"><div class="kpi-icon">📥</div><div class="kpi-label">오늘 입고</div><div class="kpi-value" id="kpi-in">-</div><div class="kpi-sub">건 처리</div></div>
+        <div class="kpi-card yellow"><div class="kpi-icon">📤</div><div class="kpi-label">오늘 출고</div><div class="kpi-value" id="kpi-out">-</div><div class="kpi-sub">건 처리</div></div>
+        <div class="kpi-card purple"><div class="kpi-icon">⚠️</div><div class="kpi-label">부족 재고</div><div class="kpi-value" id="kpi-low">-</div><div class="kpi-sub">품목 확인 필요</div></div>
+      </div>
+      <div class="dash-grid">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">공장별 재고 점유율</span><span class="text-sm text-muted font-mono" id="dash-date"></span></div>
+          <div class="panel-body">
+            <div class="factory-row"><span class="factory-label k1">K1</span><div class="bar-track"><div class="bar-fill k1" id="bar-k1" style="width:0%"></div></div><span class="bar-pct" id="pct-k1">-</span></div>
+            <div class="factory-row"><span class="factory-label k2">K2</span><div class="bar-track"><div class="bar-fill k2" id="bar-k2" style="width:0%"></div></div><span class="bar-pct" id="pct-k2">-</span></div>
+            <div class="factory-row"><span class="factory-label k3">K3</span><div class="bar-track"><div class="bar-fill k3" id="bar-k3" style="width:0%"></div></div><span class="bar-pct" id="pct-k3">-</span></div>
+            <div class="separator"></div>
+            <table class="mini-table"><tr><th>공장</th><th>합계</th><th>품목</th><th>상태</th></tr><tbody id="factory-rows"></tbody></table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">🔔 재고 알림</span></div>
+          <div class="panel-body" id="alert-list"><div class="text-muted text-sm">데이터 로딩 중...</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">최근 수불 이력</span><button class="btn btn-ghost" onclick="showPage('history')">전체 보기</button></div>
+        <div class="table-scroll">
+          <table class="data-table"><thead><tr><th>일시</th><th>유형</th><th>품목</th><th>공장</th><th class="text-right">수량</th><th>처리자</th></tr></thead>
+          <tbody id="recent-rows"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="page-inventory" class="page">
+      <div class="filter-bar">
+        <input class="filter-input" id="inv-search" placeholder="🔍 품목명 또는 코드 검색..." oninput="renderInventory()">
+        <select class="filter-select" id="inv-cat" onchange="renderInventory()"><option value="">전체 분류</option><option>원자재</option><option>반제품</option><option>완제품</option><option>부자재</option></select>
+        <select class="filter-select" id="inv-status" onchange="renderInventory()"><option value="">전체 상태</option><option value="low">부족</option><option value="ok">정상</option></select>
+      </div>
+      <div class="inv-cards" id="inv-cards"></div>
+    </div>
+
+    <!-- INBOUND -->
+    <div id="page-inbound" class="page">
+      <div class="filter-bar">
+        <input class="filter-input" id="ib-search" placeholder="🔍 검색..." oninput="renderTablePage('inbound',1)">
+        <select class="filter-select" id="ib-fac-f" onchange="renderTablePage('inbound',1)"><option value="">전체 공장</option><option>K1</option><option>K2</option><option>K3</option></select>
+      </div>
+      <div class="table-wrap">
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>입고번호</th><th>일시</th><th>품목명</th><th>공장</th><th class="text-right">수량</th><th>단위</th><th>공급업체</th><th>처리자</th><th>비고</th></tr></thead><tbody id="inbound-tbody"></tbody></table></div>
+        <div class="pagination" id="inbound-pag"></div>
+      </div>
+    </div>
+
+    <!-- OUTBOUND -->
+    <div id="page-outbound" class="page">
+      <div class="filter-bar">
+        <input class="filter-input" id="ob-search" placeholder="🔍 검색..." oninput="renderTablePage('outbound',1)">
+        <select class="filter-select" id="ob-fac-f" onchange="renderTablePage('outbound',1)"><option value="">전체 공장</option><option>K1</option><option>K2</option><option>K3</option></select>
+      </div>
+      <div class="table-wrap">
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>출고번호</th><th>일시</th><th>품목명</th><th>공장</th><th class="text-right">수량</th><th>단위</th><th>목적지</th><th>처리자</th><th>비고</th></tr></thead><tbody id="outbound-tbody"></tbody></table></div>
+        <div class="pagination" id="outbound-pag"></div>
+      </div>
+    </div>
+
+    <!-- TRANSFER -->
+    <div id="page-transfer" class="page">
+      <div class="filter-bar"><input class="filter-input" id="tf-search" placeholder="🔍 검색..." oninput="renderTablePage('transfer',1)"></div>
+      <div class="table-wrap">
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>이동번호</th><th>일시</th><th>품목명</th><th>출발</th><th>도착</th><th class="text-right">수량</th><th>단위</th><th>처리자</th><th>비고</th></tr></thead><tbody id="transfer-tbody"></tbody></table></div>
+        <div class="pagination" id="transfer-pag"></div>
+      </div>
+    </div>
+
+    <!-- ADJUSTMENT -->
+    <div id="page-adjustment" class="page">
+      <div class="filter-bar"><input class="filter-input" id="adj-search" placeholder="🔍 검색..." oninput="renderTablePage('adjustment',1)"></div>
+      <div class="table-wrap">
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>일시</th><th>품목명</th><th>공장</th><th class="text-right">조정전</th><th class="text-right">조정후</th><th class="text-right">차이</th><th>사유</th><th>처리자</th></tr></thead><tbody id="adjustment-tbody"></tbody></table></div>
+        <div class="pagination" id="adjustment-pag"></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="page-history" class="page">
+      <div class="filter-bar">
+        <input class="filter-input" id="hist-search" placeholder="🔍 품목, 처리자 검색..." oninput="renderTablePage('history',1)">
+        <select class="filter-select" id="hist-type" onchange="renderTablePage('history',1)"><option value="">전체 유형</option><option>입고</option><option>출고</option><option>이동</option><option>조정</option></select>
+        <select class="filter-select" id="hist-fac" onchange="renderTablePage('history',1)"><option value="">전체 공장</option><option>K1</option><option>K2</option><option>K3</option></select>
+      </div>
+      <div class="table-wrap">
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>일시</th><th>유형</th><th>품목명</th><th>공장</th><th class="text-right">수량</th><th>단위</th><th>처리자</th><th>비고</th></tr></thead><tbody id="history-tbody"></tbody></table></div>
+        <div class="pagination" id="history-pag"></div>
+      </div>
+    </div>
+
+    <!-- REPORT -->
+    <div id="page-report" class="page">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header"><span class="panel-title">명세서 옵션</span></div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">유형</label>
+              <select class="form-control" id="rpt-type" onchange="buildReport()"><option value="inventory">재고 현황표</option><option value="inbound">입고 명세서</option><option value="outbound">출고 명세서</option><option value="movement">수불부 (통합)</option></select></div>
+            <div class="form-group"><label class="form-label">공장</label>
+              <select class="form-control" id="rpt-fac" onchange="buildReport()"><option value="">전체</option><option>K1</option><option>K2</option><option>K3</option></select></div>
+            <div class="form-group"><label class="form-label">시작일</label><input class="form-control" type="date" id="rpt-from" onchange="buildReport()"></div>
+            <div class="form-group"><label class="form-label">종료일</label><input class="form-control" type="date" id="rpt-to" onchange="buildReport()"></div>
+          </div>
+        </div>
+      </div>
+      <div id="report-preview"></div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div id="page-products" class="page">
+      <div class="filter-bar">
+        <input class="filter-input" id="prod-search" placeholder="🔍 검색..." oninput="renderTablePage('products',1)">
+        <select class="filter-select" id="prod-cat-f" onchange="renderTablePage('products',1)"><option value="">전체 분류</option><option>원자재</option><option>반제품</option><option>완제품</option><option>부자재</option></select>
+      </div>
+      <div class="table-wrap">
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>코드</th><th>품목명</th><th>분류</th><th>단위</th><th class="text-right">안전재고</th><th class="text-right">K1</th><th class="text-right">K2</th><th class="text-right">K3</th><th>상태</th><th>편집</th></tr></thead><tbody id="products-tbody"></tbody></table></div>
+        <div class="pagination" id="products-pag"></div>
+      </div>
+    </div>
+
+    <!-- ORDER MAIL -->
+    <div id="page-order" class="page">
+      <div class="dash-grid">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">📧 발주 메일 작성</span></div>
+          <div class="panel-body">
+            <div class="form-group" style="margin-bottom:12px"><label class="form-label">수신자 이메일</label><input class="form-control" id="order-email" placeholder="supplier@example.com"></div>
+            <div class="form-group" style="margin-bottom:12px"><label class="form-label">발주 품목 선택 (부족 재고 자동 표시)</label></div>
+            <div id="order-items-list" style="display:flex;flex-direction:column;gap:8px"></div>
+            <div class="separator"></div>
+            <div class="form-group" style="margin-bottom:12px"><label class="form-label">추가 메모</label><textarea class="form-control" id="order-memo" rows="3" placeholder="발주 관련 특이사항..."></textarea></div>
+            <button class="btn btn-primary" style="width:100%" onclick="sendOrderMail()">📧 발주 메일 발송</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">⚠️ 부족 재고 현황</span></div>
+          <div class="panel-body" id="low-stock-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="page">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">⚙️ 시스템 설정</span></div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">사용자 이름</label><input class="form-control" id="set-user" placeholder="이름 입력"></div>
+            <div class="form-group"><label class="form-label">알림 메일 주소</label><input class="form-control" id="set-notify-email" placeholder="notify@email.com"></div>
+            <div class="form-group full"><label class="form-label">Apps Script URL</label><input class="form-control font-mono" id="set-api-url" placeholder="https://script.google.com/..."></div>
+          </div>
+          <div class="separator"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="saveSettings()">설정 저장</button>
+            <button class="btn btn-ghost" onclick="api('init').then(r=>toast(r.msg,'success'))">시트 초기화 (최초 1회)</button>
+            <button class="btn btn-ghost" onclick="refreshAll()">🔄 데이터 새로고침</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+<div class="modal-overlay" id="modal-inbound">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">📥 입고 등록</span><button class="modal-close" onclick="closeModal('modal-inbound')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">품목</label><select class="form-control" id="ib-item"></select></div>
+        <div class="form-group"><label class="form-label">입고 공장</label><select class="form-control" id="ib-fac"><option>K1</option><option>K2</option><option>K3</option></select></div>
+        <div class="form-group"><label class="form-label">수량</label><input class="form-control" type="number" id="ib-qty" placeholder="0" min="0"></div>
+        <div class="form-group"><label class="form-label">일시</label><input class="form-control" type="datetime-local" id="ib-date"></div>
+        <div class="form-group"><label class="form-label">공급업체</label><input class="form-control" id="ib-vendor" placeholder="공급업체명"></div>
+        <div class="form-group"><label class="form-label">처리자</label><input class="form-control" id="ib-worker"></div>
+        <div class="form-group full"><label class="form-label">비고</label><textarea class="form-control" id="ib-note" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-inbound')">취소</button><button class="btn btn-success" id="btn-ib-submit" onclick="submitInbound()">입고 등록</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-outbound">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">📤 출고 등록</span><button class="modal-close" onclick="closeModal('modal-outbound')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">품목</label><select class="form-control" id="ob-item"></select></div>
+        <div class="form-group"><label class="form-label">출고 공장</label><select class="form-control" id="ob-fac"><option>K1</option><option>K2</option><option>K3</option></select></div>
+        <div class="form-group"><label class="form-label">수량</label><input class="form-control" type="number" id="ob-qty" placeholder="0" min="0"></div>
+        <div class="form-group"><label class="form-label">일시</label><input class="form-control" type="datetime-local" id="ob-date"></div>
+        <div class="form-group"><label class="form-label">목적지</label><input class="form-control" id="ob-dest" placeholder="출고 목적지"></div>
+        <div class="form-group"><label class="form-label">처리자</label><input class="form-control" id="ob-worker"></div>
+        <div class="form-group full"><label class="form-label">비고</label><textarea class="form-control" id="ob-note" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-outbound')">취소</button><button class="btn btn-danger" id="btn-ob-submit" onclick="submitOutbound()">출고 등록</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-transfer">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">🔄 이동 처리</span><button class="modal-close" onclick="closeModal('modal-transfer')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">품목</label><select class="form-control" id="tf-item"></select></div>
+        <div class="form-group"><label class="form-label">수량</label><input class="form-control" type="number" id="tf-qty" placeholder="0" min="0"></div>
+        <div class="form-group"><label class="form-label">출발 공장</label><select class="form-control" id="tf-from-fac" onchange="updateTfVisual()"><option>K1</option><option>K2</option><option>K3</option></select></div>
+        <div class="form-group"><label class="form-label">도착 공장</label><select class="form-control" id="tf-to-fac" onchange="updateTfVisual()"><option>K2</option><option>K1</option><option>K3</option></select></div>
+      </div>
+      <div class="transfer-visual">
+        <div class="transfer-box from"><div class="tf-label from">출발</div><div class="tf-name" id="tf-from-v">K1</div></div>
+        <div style="font-size:24px;color:var(--text3)">→</div>
+        <div class="transfer-box to"><div class="tf-label to">도착</div><div class="tf-name" id="tf-to-v">K2</div></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">일시</label><input class="form-control" type="datetime-local" id="tf-date"></div>
+        <div class="form-group"><label class="form-label">처리자</label><input class="form-control" id="tf-worker"></div>
+        <div class="form-group full"><label class="form-label">비고</label><textarea class="form-control" id="tf-note" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-transfer')">취소</button><button class="btn btn-primary" id="btn-tf-submit" onclick="submitTransfer()">이동 처리</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-adjust">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">⚖️ 재고 조정</span><button class="modal-close" onclick="closeModal('modal-adjust')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">품목</label><select class="form-control" id="adj-item"></select></div>
+        <div class="form-group"><label class="form-label">공장</label><select class="form-control" id="adj-fac"><option>K1</option><option>K2</option><option>K3</option></select></div>
+        <div class="form-group"><label class="form-label">조정 후 수량</label><input class="form-control" type="number" id="adj-qty" placeholder="0" min="0"></div>
+        <div class="form-group"><label class="form-label">처리자</label><input class="form-control" id="adj-worker"></div>
+        <div class="form-group full"><label class="form-label">사유</label><select class="form-control" id="adj-reason"><option>실사 결과 조정</option><option>파손/손실</option><option>시스템 오류 수정</option><option>기타</option></select></div>
+        <div class="form-group full"><label class="form-label">비고</label><textarea class="form-control" id="adj-note" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-adjust')">취소</button><button class="btn btn-primary" id="btn-adj-submit" onclick="submitAdjust()">조정 확정</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-product">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="prod-modal-title">품목 등록</span><button class="modal-close" onclick="closeModal('modal-product')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">품목코드</label><input class="form-control" id="pm-code" placeholder="MAT-001"></div>
+        <div class="form-group"><label class="form-label">품목명</label><input class="form-control" id="pm-name"></div>
+        <div class="form-group"><label class="form-label">분류</label><select class="form-control" id="pm-cat"><option>원자재</option><option>반제품</option><option>완제품</option><option>부자재</option></select></div>
+        <div class="form-group"><label class="form-label">단위</label><select class="form-control" id="pm-unit"><option>kg</option><option>g</option><option>L</option><option>mL</option><option>개</option><option>박스</option><option>포대</option><option>롤</option></select></div>
+        <div class="form-group"><label class="form-label">안전재고</label><input class="form-control" type="number" id="pm-safe" placeholder="0" min="0"></div>
+        <div class="form-group"><label class="form-label">초기 K1 재고</label><input class="form-control" type="number" id="pm-k1" placeholder="0" min="0"></div>
+        <div class="form-group"><label class="form-label">초기 K2 재고</label><input class="form-control" type="number" id="pm-k2" placeholder="0" min="0"></div>
+        <div class="form-group"><label class="form-label">초기 K3 재고</label><input class="form-control" type="number" id="pm-k3" placeholder="0" min="0"></div>
+        <div class="form-group full"><label class="form-label">메모</label><input class="form-control" id="pm-memo"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-product')">취소</button><button class="btn btn-primary" id="btn-pm-submit" onclick="submitProduct()">저장</button></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIG & STATE
+// ══════════════════════════════════════════════
+let CFG = {
+  apiUrl: localStorage.getItem('wms_api_url') || '',
+  user: localStorage.getItem('wms_user') || '두세운',
+};
+
+let STATE = {
+  products: [],
+  inbound: [],
+  outbound: [],
+  transfers: [],
+  adjustments: [],
+  history: [],
+  editingProductId: null,
+  pages: {},
+};
+
+// ══════════════════════════════════════════════
+// API 호출
+// ══════════════════════════════════════════════
+async function api(action, data = {}) {
+  if (!CFG.apiUrl) { toast('API URL이 설정되지 않았습니다. 설정 메뉴를 확인하세요.', 'error'); return null; }
+  setSyncState('loading');
+  try {
+    const res = await fetch(CFG.apiUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action, ...data }),
+    });
+    const json = await res.json();
+    setSyncState(json.ok !== false ? 'ok' : 'error');
+    return json;
+  } catch (e) {
+    setSyncState('error');
+    toast('서버 연결 오류: ' + e.message, 'error');
+    return null;
+  }
+}
+
+function setSyncState(state) {
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (state === 'loading') { dot.className = 'sync-dot loading'; label.textContent = '동기화 중...'; }
+  else if (state === 'ok')  { dot.className = 'sync-dot'; label.textContent = '연결됨'; }
+  else                      { dot.className = 'sync-dot error'; label.textContent = '연결 오류'; }
+}
+
+async function refreshAll() {
+  showLoading('데이터 불러오는 중...');
+  const res = await api('getAllData');
+  hideLoading();
+  if (!res || !res.ok) return;
+  STATE.products    = res.products    || [];
+  STATE.inbound     = res.inbound     || [];
+  STATE.outbound    = res.outbound    || [];
+  STATE.transfers   = res.transfers   || [];
+  STATE.adjustments = res.adjustments || [];
+  // rebuild combined history
+  STATE.history = [
+    ...STATE.inbound.map(r => ({ ...r, 유형: '입고', 공장: r['공장'], 수량: r['수량'], 단위: r['단위'], 처리자: r['처리자'], 비고: r['비고'], 일시: r['일시'] })),
+    ...STATE.outbound.map(r => ({ ...r, 유형: '출고', 공장: r['공장'], 수량: -Number(r['수량']), 단위: r['단위'], 처리자: r['처리자'], 비고: r['비고'], 일시: r['일시'] })),
+    ...STATE.transfers.map(r => ({ ...r, 유형: '이동', 공장: (r['출발공장']||'') + '→' + (r['도착공장']||''), 수량: r['수량'], 단위: r['단위'], 처리자: r['처리자'], 비고: r['비고'], 일시: r['일시'] })),
+    ...STATE.adjustments.map(r => ({ ...r, 유형: '조정', 공장: r['공장'], 수량: r['차이'], 단위: '', 처리자: r['처리자'], 비고: r['사유'], 일시: r['일시'] })),
+  ].sort((a,b) => String(b['일시']||'').localeCompare(String(a['일시']||'')));
+
+  renderCurrentPage();
+  toast('데이터 업데이트 완료', 'success');
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+const PAGE_TITLES = { dashboard:'대시보드', inventory:'재고 현황', inbound:'입고 관리', outbound:'출고 관리', transfer:'이동 처리', adjustment:'재고 조정', history:'수불 이력', report:'명세서 출력', products:'품목 관리', order:'발주 메일', settings:'설정' };
+const PAGE_ACTIONS = {
+  inventory:  `<button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
+  inbound:    `<button class="btn btn-success" onclick="openInboundModal()">＋ 입고 등록</button>`,
+  outbound:   `<button class="btn btn-danger"  onclick="openOutboundModal()">＋ 출고 등록</button>`,
+  transfer:   `<button class="btn btn-primary" onclick="openTransferModal()">＋ 이동 처리</button>`,
+  adjustment: `<button class="btn btn-primary" onclick="openAdjustModal()">＋ 재고 조정</button>`,
+  report:     `<button class="btn btn-ghost" onclick="window.print()">🖨️ 인쇄</button>`,
+  products:   `<button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
+};
+
+let currentPage = 'dashboard';
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event && event.currentTarget && event.currentTarget.classList.add('active');
+  currentPage = id;
+  document.getElementById('page-title').textContent = PAGE_TITLES[id] || id;
+  const acts = document.getElementById('topbar-actions');
+  acts.innerHTML = (PAGE_ACTIONS[id] || '') + `<button class="btn btn-ghost" onclick="refreshAll()">🔄</button>`;
+  renderCurrentPage();
+}
+
+function renderCurrentPage() {
+  if (currentPage === 'dashboard')  renderDashboard();
+  if (currentPage === 'inventory')  renderInventory();
+  if (currentPage === 'inbound')    renderTablePage('inbound',1);
+  if (currentPage === 'outbound')   renderTablePage('outbound',1);
+  if (currentPage === 'transfer')   renderTablePage('transfer',1);
+  if (currentPage === 'adjustment') renderTablePage('adjustment',1);
+  if (currentPage === 'history')    renderTablePage('history',1);
+  if (currentPage === 'products')   renderTablePage('products',1);
+  if (currentPage === 'report')     { initReport(); buildReport(); }
+  if (currentPage === 'order')      renderOrderPage();
+}
+
+// ══════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════
+function renderDashboard() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('dash-date').textContent = today;
+
+  const prods = STATE.products;
+  document.getElementById('kpi-items').textContent = prods.length;
+  document.getElementById('kpi-in').textContent  = STATE.inbound.filter(r => String(r['일시']||'').startsWith(today)).length;
+  document.getElementById('kpi-out').textContent = STATE.outbound.filter(r => String(r['일시']||'').startsWith(today)).length;
+  const low = prods.filter(p => (n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고')) < n(p,'안전재고')).length;
+  document.getElementById('kpi-low').textContent = low;
+
+  const totK1 = prods.reduce((s,p)=>s+n(p,'K1재고'),0);
+  const totK2 = prods.reduce((s,p)=>s+n(p,'K2재고'),0);
+  const totK3 = prods.reduce((s,p)=>s+n(p,'K3재고'),0);
+  const grand = totK1+totK2+totK3 || 1;
+  ['k1','k2','k3'].forEach((k,i) => {
+    const val = [totK1,totK2,totK3][i];
+    const pct = Math.round(val/grand*100);
+    document.getElementById('bar-'+k).style.width = pct+'%';
+    document.getElementById('pct-'+k).textContent = pct+'%';
+  });
+  document.getElementById('factory-rows').innerHTML = [['K1',totK1],['K2',totK2],['K3',totK3]].map(([f,t])=>
+    `<tr><td><span class="fbadge ${f.toLowerCase()}">${f}</span></td><td class="font-mono">${t.toLocaleString()}</td><td class="font-mono">${prods.filter(p=>n(p,f+'재고')>0).length}</td><td><span class="badge badge-in">정상</span></td></tr>`).join('');
+
+  // alerts
+  const alerts = prods.filter(p=>(n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고'))<n(p,'안전재고')).map(p=>
+    `<div class="alert-item"><div class="alert-dot red"></div><div><div class="alert-text">⚠️ [${p['품목명']}] 재고 부족 — 현재 ${n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고')}${p['단위']} / 안전재고 ${n(p,'안전재고')}${p['단위']}</div></div></div>`);
+  document.getElementById('alert-list').innerHTML = alerts.length ? alerts.join('') : '<div class="alert-item"><div class="alert-dot green"></div><div><div class="alert-text">모든 재고 정상</div></div></div>';
+
+  const tc = {'입고':'badge-in','출고':'badge-out','이동':'badge-move','조정':'badge-adj'};
+  document.getElementById('recent-rows').innerHTML = STATE.history.slice(0,8).map(r=>
+    `<tr><td class="font-mono">${String(r['일시']||'').slice(0,16)}</td><td><span class="badge ${tc[r['유형']]||''}">${r['유형']}</span></td><td>${r['품목명']||''}</td><td>${r['공장']||''}</td><td class="num" style="color:${Number(r['수량'])<0?'var(--red)':'var(--green)'}">${Number(r['수량'])>0?'+':''}${Number(r['수량']||0).toLocaleString()}</td><td>${r['처리자']||''}</td></tr>`
+  ).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">이력 없음</td></tr>';
+}
+
+// ══════════════════════════════════════════════
+// INVENTORY CARDS
+// ══════════════════════════════════════════════
+function renderInventory() {
+  const s = (document.getElementById('inv-search')||{}).value?.toLowerCase()||'';
+  const cat = (document.getElementById('inv-cat')||{}).value||'';
+  const status = (document.getElementById('inv-status')||{}).value||'';
+  const catColors = {'원자재':'badge-in','반제품':'badge-move','완제품':'badge-adj','부자재':'badge-out'};
+
+  const prods = STATE.products.filter(p=>{
+    if(s && !String(p['품목명']||'').toLowerCase().includes(s) && !String(p['품목코드']||'').toLowerCase().includes(s)) return false;
+    if(cat && p['분류']!==cat) return false;
+    const tot=n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고');
+    if(status==='low' && tot>=n(p,'안전재고')) return false;
+    if(status==='ok'  && tot<n(p,'안전재고')) return false;
+    return true;
+  });
+
+  document.getElementById('inv-cards').innerHTML = prods.map(p=>{
+    const k1=n(p,'K1재고'),k2=n(p,'K2재고'),k3=n(p,'K3재고'),tot=k1+k2+k3,safe=n(p,'안전재고');
+    const isLow=tot<safe;
+    return `<div class="inv-card" onclick="openProductEdit('${p['품목ID']}')">
+      <div class="inv-card-top"><div><div class="inv-item-name">${p['품목명']}</div><div class="inv-item-code">${p['품목코드']}</div></div><span class="badge ${catColors[p['분류']]||''}">${p['분류']}</span></div>
+      <div class="inv-stock-row">
+        <div class="inv-stock-box"><div class="inv-stock-label">K1</div><div class="inv-stock-val k1">${k1.toLocaleString()}</div></div>
+        <div class="inv-stock-box"><div class="inv-stock-label">K2</div><div class="inv-stock-val k2">${k2.toLocaleString()}</div></div>
+        <div class="inv-stock-box"><div class="inv-stock-label">K3</div><div class="inv-stock-val k3">${k3.toLocaleString()}</div></div>
+      </div>
+      <div class="inv-total">합계: <strong>${tot.toLocaleString()} ${p['단위']||''}</strong> | 안전재고: ${safe.toLocaleString()}</div>
+      ${isLow?`<div class="inv-warning">⚠️ 재고 부족 — ${(safe-tot).toLocaleString()} ${p['단위']||''} 필요</div>`:''}
+    </div>`;
+  }).join('') || '<div class="text-muted text-sm" style="padding:20px">조건에 맞는 품목이 없습니다.</div>';
+}
+
+// ══════════════════════════════════════════════
+// TABLE RENDERER (공통)
+// ══════════════════════════════════════════════
+function renderTablePage(type, page) {
+  STATE.pages[type] = page || STATE.pages[type] || 1;
+  const p = STATE.pages[type];
+  const perPage = 15;
+
+  let data = [];
+  const tc = {'입고':'badge-in','출고':'badge-out','이동':'badge-move','조정':'badge-adj'};
+
+  if (type === 'inbound') {
+    const s = (document.getElementById('ib-search')||{}).value?.toLowerCase()||'';
+    const f = (document.getElementById('ib-fac-f')||{}).value||'';
+    data = STATE.inbound.filter(r=>(!s||(r['품목명']||'').toLowerCase().includes(s))&&(!f||r['공장']===f));
+    const slice = data.slice((p-1)*perPage, p*perPage);
+    document.getElementById('inbound-tbody').innerHTML = slice.map(r=>
+      `<tr><td class="font-mono">${r['입고번호']||'-'}</td><td class="font-mono">${String(r['일시']||'').slice(0,16)}</td><td>${r['품목명']||''}</td><td><span class="fbadge ${(r['공장']||'').toLowerCase()}">${r['공장']||''}</span></td><td class="num" style="color:var(--green)">+${Number(r['수량']||0).toLocaleString()}</td><td>${r['단위']||''}</td><td>${r['공급업체']||'-'}</td><td>${r['처리자']||''}</td><td>${r['비고']||'-'}</td></tr>`
+    ).join('')||emptyRow(9);
+    renderPag('inbound-pag', data.length, p, perPage, 'inbound');
+  }
+  else if (type === 'outbound') {
+    const s = (document.getElementById('ob-search')||{}).value?.toLowerCase()||'';
+    const f = (document.getElementById('ob-fac-f')||{}).value||'';
+    data = STATE.outbound.filter(r=>(!s||(r['품목명']||'').toLowerCase().includes(s))&&(!f||r['공장']===f));
+    const slice = data.slice((p-1)*perPage, p*perPage);
+    document.getElementById('outbound-tbody').innerHTML = slice.map(r=>
+      `<tr><td class="font-mono">${r['출고번호']||'-'}</td><td class="font-mono">${String(r['일시']||'').slice(0,16)}</td><td>${r['품목명']||''}</td><td><span class="fbadge ${(r['공장']||'').toLowerCase()}">${r['공장']||''}</span></td><td class="num" style="color:var(--red)">-${Number(r['수량']||0).toLocaleString()}</td><td>${r['단위']||''}</td><td>${r['목적지']||'-'}</td><td>${r['처리자']||''}</td><td>${r['비고']||'-'}</td></tr>`
+    ).join('')||emptyRow(9);
+    renderPag('outbound-pag', data.length, p, perPage, 'outbound');
+  }
+  else if (type === 'transfer') {
+    const s = (document.getElementById('tf-search')||{}).value?.toLowerCase()||'';
+    data = STATE.transfers.filter(r=>(!s||(r['품목명']||'').toLowerCase().includes(s)));
+    const slice = data.slice((p-1)*perPage, p*perPage);
+    document.getElementById('transfer-tbody').innerHTML = slice.map(r=>
+      `<tr><td class="font-mono">${r['이동번호']||'-'}</td><td class="font-mono">${String(r['일시']||'').slice(0,16)}</td><td>${r['품목명']||''}</td><td><span class="fbadge ${(r['출발공장']||'').toLowerCase()}">${r['출발공장']||''}</span></td><td><span class="fbadge ${(r['도착공장']||'').toLowerCase()}">${r['도착공장']||''}</span></td><td class="num">${Number(r['수량']||0).toLocaleString()}</td><td>${r['단위']||''}</td><td>${r['처리자']||''}</td><td>${r['비고']||'-'}</td></tr>`
+    ).join('')||emptyRow(9);
+    renderPag('transfer-pag', data.length, p, perPage, 'transfer');
+  }
+  else if (type === 'adjustment') {
+    const s = (document.getElementById('adj-search')||{}).value?.toLowerCase()||'';
+    data = STATE.adjustments.filter(r=>(!s||(r['품목명']||'').toLowerCase().includes(s)));
+    const slice = data.slice((p-1)*perPage, p*perPage);
+    document.getElementById('adjustment-tbody').innerHTML = slice.map(r=>
+      `<tr><td class="font-mono">${String(r['일시']||'').slice(0,16)}</td><td>${r['품목명']||''}</td><td><span class="fbadge ${(r['공장']||'').toLowerCase()}">${r['공장']||''}</span></td><td class="num">${Number(r['조정전']||0).toLocaleString()}</td><td class="num">${Number(r['조정후']||0).toLocaleString()}</td><td class="num" style="color:${Number(r['차이']||0)<0?'var(--red)':'var(--green)'}">${Number(r['차이']||0)>0?'+':''}${Number(r['차이']||0)}</td><td>${r['사유']||''}</td><td>${r['처리자']||''}</td></tr>`
+    ).join('')||emptyRow(8);
+    renderPag('adjustment-pag', data.length, p, perPage, 'adjustment');
+  }
+  else if (type === 'history') {
+    const s = (document.getElementById('hist-search')||{}).value?.toLowerCase()||'';
+    const t = (document.getElementById('hist-type')||{}).value||'';
+    const f = (document.getElementById('hist-fac')||{}).value||'';
+    data = STATE.history.filter(r=>
+      (!s||(r['품목명']||'').toLowerCase().includes(s)||(r['처리자']||'').toLowerCase().includes(s))&&
+      (!t||r['유형']===t)&&(!f||String(r['공장']||'').includes(f)));
+    const slice = data.slice((p-1)*perPage, p*perPage);
+    document.getElementById('history-tbody').innerHTML = slice.map(r=>{
+      const qty = Number(r['수량']||0);
+      return `<tr><td class="font-mono">${String(r['일시']||'').slice(0,16)}</td><td><span class="badge ${tc[r['유형']]||''}">${r['유형']||''}</span></td><td>${r['품목명']||''}</td><td>${r['공장']||''}</td><td class="num" style="color:${qty<0?'var(--red)':qty>0?'var(--green)':'var(--text2)'}">${qty>0?'+':''}${qty.toLocaleString()}</td><td>${r['단위']||'-'}</td><td>${r['처리자']||''}</td><td>${r['비고']||'-'}</td></tr>`;
+    }).join('')||emptyRow(8);
+    renderPag('history-pag', data.length, p, perPage, 'history');
+  }
+  else if (type === 'products') {
+    const s = (document.getElementById('prod-search')||{}).value?.toLowerCase()||'';
+    const cat = (document.getElementById('prod-cat-f')||{}).value||'';
+    data = STATE.products.filter(p=>
+      (!s||(p['품목명']||'').toLowerCase().includes(s)||(p['품목코드']||'').toLowerCase().includes(s))&&
+      (!cat||p['분류']===cat));
+    const slice = data.slice((p-1)*perPage, p*perPage);
+    document.getElementById('products-tbody').innerHTML = slice.map(p=>{
+      const tot=n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고'),safe=n(p,'안전재고');
+      return `<tr><td class="font-mono">${p['품목코드']||''}</td><td><strong>${p['품목명']||''}</strong></td><td>${p['분류']||''}</td><td>${p['단위']||''}</td><td class="num">${safe.toLocaleString()}</td><td class="num" style="color:#60a5fa">${n(p,'K1재고').toLocaleString()}</td><td class="num" style="color:#34d399">${n(p,'K2재고').toLocaleString()}</td><td class="num" style="color:#a78bfa">${n(p,'K3재고').toLocaleString()}</td><td><span class="badge ${tot<safe?'badge-out':'badge-in'}">${tot<safe?'부족':'정상'}</span></td><td><button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="openProductEdit('${p['품목ID']}')">편집</button></td></tr>`;
+    }).join('')||emptyRow(10);
+    renderPag('products-pag', data.length, p, perPage, 'products');
+  }
+}
+
+function renderPag(elId, total, page, perPage, type) {
+  const pages = Math.ceil(total/perPage)||1;
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = `<span>${total.toLocaleString()}건</span>
+    <div class="page-btns">
+      <button class="page-btn" onclick="renderTablePage('${type}',${page-1})" ${page<=1?'disabled':''}>‹</button>
+      ${Array.from({length:Math.min(pages,5)},(_,i)=>{const pg=Math.max(1,Math.min(pages-4,page-2))+i;return pg<=pages?`<button class="page-btn ${pg===page?'active':''}" onclick="renderTablePage('${type}',${pg})">${pg}</button>`:''}).join('')}
+      <button class="page-btn" onclick="renderTablePage('${type}',${page+1})" ${page>=pages?'disabled':''}>›</button>
+    </div>`;
+}
+function emptyRow(cols) { return `<tr><td colspan="${cols}" style="text-align:center;color:var(--text3);padding:24px">데이터가 없습니다.</td></tr>`; }
+
+// ══════════════════════════════════════════════
+// REPORT
+// ══════════════════════════════════════════════
+function initReport() {
+  const today = new Date().toISOString().slice(0,10);
+  if (!document.getElementById('rpt-from').value) document.getElementById('rpt-from').value = today.slice(0,7)+'-01';
+  if (!document.getElementById('rpt-to').value)   document.getElementById('rpt-to').value   = today;
+}
+function buildReport() {
+  const type = document.getElementById('rpt-type').value;
+  const fac  = document.getElementById('rpt-fac').value;
+  const from = document.getElementById('rpt-from').value;
+  const to   = document.getElementById('rpt-to').value;
+  const today = new Date().toLocaleDateString('ko-KR');
+
+  let tableHTML='', title='';
+  const filterDate = (r,field='일시') => { const d=String(r[field]||''); return (!from||d>=from)&&(!to||d<=to+'T23:59'); };
+  const filterFac  = (r,field='공장') => !fac || String(r[field]||'').includes(fac);
+
+  if (type==='inventory') {
+    title='재고 현황표';
+    const rows = STATE.products.filter(p=>!fac||(n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고'))>0);
+    tableHTML=`<table class="data-table"><thead><tr><th>품목코드</th><th>품목명</th><th>분류</th><th>단위</th><th class="text-right">K1</th><th class="text-right">K2</th><th class="text-right">K3</th><th class="text-right">합계</th><th>상태</th></tr></thead><tbody>
+    ${rows.map(p=>{const tot=n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고'),safe=n(p,'안전재고');return `<tr><td class="font-mono">${p['품목코드']||''}</td><td>${p['품목명']||''}</td><td>${p['분류']||''}</td><td>${p['단위']||''}</td><td class="num">${n(p,'K1재고').toLocaleString()}</td><td class="num">${n(p,'K2재고').toLocaleString()}</td><td class="num">${n(p,'K3재고').toLocaleString()}</td><td class="num"><strong>${tot.toLocaleString()}</strong></td><td><span class="badge ${tot<safe?'badge-out':'badge-in'}">${tot<safe?'부족':'정상'}</span></td></tr>`;}).join('')}
+    </tbody></table>`;
+  } else if (type==='inbound') {
+    title='입고 명세서';
+    const data=STATE.inbound.filter(r=>filterDate(r)&&filterFac(r));
+    const tot=data.reduce((s,r)=>s+Number(r['수량']||0),0);
+    tableHTML=`<table class="data-table"><thead><tr><th>입고번호</th><th>일시</th><th>품목명</th><th>공장</th><th class="text-right">수량</th><th>단위</th><th>공급업체</th><th>처리자</th></tr></thead><tbody>
+    ${data.map(r=>`<tr><td class="font-mono">${r['입고번호']||'-'}</td><td class="font-mono">${String(r['일시']||'').slice(0,16)}</td><td>${r['품목명']||''}</td><td>${r['공장']||''}</td><td class="num">${Number(r['수량']||0).toLocaleString()}</td><td>${r['단위']||''}</td><td>${r['공급업체']||'-'}</td><td>${r['처리자']||''}</td></tr>`).join('')}
+    <tr style="background:var(--bg3)"><td colspan="4"><strong>합계</strong></td><td class="num"><strong>${tot.toLocaleString()}</strong></td><td colspan="3"></td></tr>
+    </tbody></table>`;
+  } else if (type==='outbound') {
+    title='출고 명세서';
+    const data=STATE.outbound.filter(r=>filterDate(r)&&filterFac(r));
+    const tot=data.reduce((s,r)=>s+Number(r['수량']||0),0);
+    tableHTML=`<table class="data-table"><thead><tr><th>출고번호</th><th>일시</th><th>품목명</th><th>공장</th><th class="text-right">수량</th><th>단위</th><th>목적지</th><th>처리자</th></tr></thead><tbody>
+    ${data.map(r=>`<tr><td class="font-mono">${r['출고번호']||'-'}</td><td class="font-mono">${String(r['일시']||'').slice(0,16)}</td><td>${r['품목명']||''}</td><td>${r['공장']||''}</td><td class="num">${Number(r['수량']||0).toLocaleString()}</td><td>${r['단위']||''}</td><td>${r['목적지']||'-'}</td><td>${r['처리자']||''}</td></tr>`).join('')}
+    <tr style="background:var(--bg3)"><td colspan="4"><strong>합계</strong></td><td class="num"><strong>${tot.toLocaleString()}</strong></td><td colspan="3"></td></tr>
+    </tbody></table>`;
+  } else {
+    title='수불부 (입출고 통합)';
+    const tc={'입고':'badge-in','출고':'badge-out','이동':'badge-move','조정':'badge-adj'};
+    const data=STATE.history.filter(r=>filterDate(r));
+    tableHTML=`<table class="data-table"><thead><tr><th>일시</th><th>유형</th><th>품목명</th><th>공장</th><th class="text-right">수량</th><th>단위</th><th>처리자</th><th>비고</th></tr></thead><tbody>
+    ${data.map(r=>{const q=Number(r['수량']||0);return `<tr><td class="font-mono">${String(r['일시']||'').slice(0,16)}</td><td><span class="badge ${tc[r['유형']]||''}">${r['유형']||''}</span></td><td>${r['품목명']||''}</td><td>${r['공장']||''}</td><td class="num" style="color:${q<0?'var(--red)':'var(--green)'}">${q>0?'+':''}${q.toLocaleString()}</td><td>${r['단위']||'-'}</td><td>${r['처리자']||''}</td><td>${r['비고']||'-'}</td></tr>`;}).join('')}
+    </tbody></table>`;
+  }
+
+  document.getElementById('report-preview').innerHTML=`
+    <div class="report-header-print">
+      <div class="report-title-area"><h2>${title}</h2><p>생산지원1팀 · WMS System</p></div>
+      <div class="report-meta">출력일: ${today}<br>기간: ${from||'-'} ~ ${to||'-'}<br>공장: ${fac||'전체'}<br>담당: ${CFG.user}</div>
+    </div>
+    <div class="table-wrap">${tableHTML}</div>`;
+}
+
+// ══════════════════════════════════════════════
+// ORDER PAGE
+// ══════════════════════════════════════════════
+function renderOrderPage() {
+  const low = STATE.products.filter(p=>(n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고'))<n(p,'안전재고'));
+  document.getElementById('low-stock-list').innerHTML = low.length
+    ? low.map(p=>{const tot=n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고');return `<div class="alert-item"><div class="alert-dot red"></div><div><div class="alert-text"><strong>${p['품목명']}</strong> — 현재 ${tot}${p['단위']} / 필요 ${n(p,'안전재고')-tot}${p['단위']}</div></div></div>`;}).join('')
+    : '<div class="text-muted text-sm">부족 재고 없음</div>';
+
+  document.getElementById('order-items-list').innerHTML = low.map((p,i)=>{
+    const need = n(p,'안전재고')-(n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고'));
+    return `<div style="display:flex;gap:8px;align-items:center">
+      <input type="checkbox" id="ord-chk-${i}" checked style="accent-color:var(--accent2)">
+      <span style="flex:1;font-size:13px">${p['품목명']}</span>
+      <input class="filter-input" id="ord-qty-${i}" type="number" value="${need}" style="flex:0;width:80px">
+      <span class="text-sm text-muted">${p['단위']||''}</span>
+      <input class="filter-input" id="ord-vendor-${i}" placeholder="공급업체" style="flex:0;width:120px">
+      <input type="hidden" id="ord-pid-${i}" value="${p['품목ID']}">
+    </div>`;
+  }).join('') || '<div class="text-muted text-sm">발주할 품목이 없습니다.</div>';
+}
+
+async function sendOrderMail() {
+  const to = document.getElementById('order-email').value.trim();
+  if (!to) { toast('수신 이메일을 입력하세요', 'error'); return; }
+  const low = STATE.products.filter(p=>(n(p,'K1재고')+n(p,'K2재고')+n(p,'K3재고'))<n(p,'안전재고'));
+  const items = [];
+  low.forEach((p,i)=>{
+    const chk = document.getElementById('ord-chk-'+i);
+    if (chk && chk.checked) {
+      items.push({ name:p['품목명'], qty:document.getElementById('ord-qty-'+i)?.value||'', unit:p['단위']||'', vendor:document.getElementById('ord-vendor-'+i)?.value||'' });
+    }
+  });
+  if (!items.length) { toast('발주할 품목을 선택하세요', 'error'); return; }
+  const res = await api('sendOrderMail', { to, items, memo: document.getElementById('order-memo').value });
+  if (res && res.ok) toast(res.msg, 'success');
+}
+
+// ══════════════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
+
+function populateSel(selId) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  sel.innerHTML = STATE.products.map(p=>`<option value="${p['품목ID']}">${p['품목명']} (${p['품목코드']})</option>`).join('');
+}
+function nowDt() { return new Date().toISOString().slice(0,16); }
+
+function openInboundModal() { populateSel('ib-item'); document.getElementById('ib-date').value=nowDt(); document.getElementById('ib-worker').value=CFG.user; openModal('modal-inbound'); }
+function openOutboundModal() { populateSel('ob-item'); document.getElementById('ob-date').value=nowDt(); document.getElementById('ob-worker').value=CFG.user; openModal('modal-outbound'); }
+function openTransferModal() { populateSel('tf-item'); document.getElementById('tf-date').value=nowDt(); document.getElementById('tf-worker').value=CFG.user; openModal('modal-transfer'); updateTfVisual(); }
+function openAdjustModal()   { populateSel('adj-item'); document.getElementById('adj-worker').value=CFG.user; openModal('modal-adjust'); }
+function openProductModal()  { STATE.editingProductId=null; document.getElementById('prod-modal-title').textContent='품목 등록'; ['pm-code','pm-name','pm-safe','pm-k1','pm-k2','pm-k3','pm-memo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';}); openModal('modal-product'); }
+function openProductEdit(id) {
+  const p = STATE.products.find(x=>x['품목ID']===id);
+  if (!p) return;
+  STATE.editingProductId = id;
+  document.getElementById('prod-modal-title').textContent = '품목 편집';
+  document.getElementById('pm-code').value = p['품목코드']||'';
+  document.getElementById('pm-name').value = p['품목명']||'';
+  document.getElementById('pm-cat').value  = p['분류']||'원자재';
+  document.getElementById('pm-unit').value = p['단위']||'kg';
+  document.getElementById('pm-safe').value = n(p,'안전재고');
+  document.getElementById('pm-k1').value   = n(p,'K1재고');
+  document.getElementById('pm-k2').value   = n(p,'K2재고');
+  document.getElementById('pm-k3').value   = n(p,'K3재고');
+  document.getElementById('pm-memo').value = p['메모']||'';
+  openModal('modal-product');
+}
+function updateTfVisual() {
+  document.getElementById('tf-from-v').textContent = document.getElementById('tf-from-fac').value;
+  document.getElementById('tf-to-v').textContent   = document.getElementById('tf-to-fac').value;
+}
+
+// ══════════════════════════════════════════════
+// SUBMIT HANDLERS
+// ══════════════════════════════════════════════
+async function submitInbound() {
+  const itemId  = document.getElementById('ib-item').value;
+  const factory = document.getElementById('ib-fac').value;
+  const qty     = document.getElementById('ib-qty').value;
+  if (!qty||Number(qty)<=0) { toast('수량을 입력하세요','error'); return; }
+  setLoading('btn-ib-submit', true);
+  const res = await api('inbound', { itemId, factory, qty, date:document.getElementById('ib-date').value, vendor:document.getElementById('ib-vendor').value, worker:document.getElementById('ib-worker').value, note:document.getElementById('ib-note').value });
+  setLoading('btn-ib-submit', false);
+  if (res && res.ok) { toast(res.msg,'success'); closeModal('modal-inbound'); refreshAll(); }
+  else if (res) toast(res.msg,'error');
+}
+async function submitOutbound() {
+  const itemId  = document.getElementById('ob-item').value;
+  const factory = document.getElementById('ob-fac').value;
+  const qty     = document.getElementById('ob-qty').value;
+  if (!qty||Number(qty)<=0) { toast('수량을 입력하세요','error'); return; }
+  setLoading('btn-ob-submit', true);
+  const res = await api('outbound', { itemId, factory, qty, date:document.getElementById('ob-date').value, dest:document.getElementById('ob-dest').value, worker:document.getElementById('ob-worker').value, note:document.getElementById('ob-note').value });
+  setLoading('btn-ob-submit', false);
+  if (res && res.ok) { toast(res.msg,'success'); closeModal('modal-outbound'); refreshAll(); }
+  else if (res) toast(res.msg,'error');
+}
+async function submitTransfer() {
+  const itemId = document.getElementById('tf-item').value;
+  const from   = document.getElementById('tf-from-fac').value;
+  const to     = document.getElementById('tf-to-fac').value;
+  const qty    = document.getElementById('tf-qty').value;
+  if (!qty||Number(qty)<=0) { toast('수량을 입력하세요','error'); return; }
+  if (from===to) { toast('출발/도착 공장이 같습니다','error'); return; }
+  setLoading('btn-tf-submit', true);
+  const res = await api('transfer', { itemId, from, to, qty, date:document.getElementById('tf-date').value, worker:document.getElementById('tf-worker').value, note:document.getElementById('tf-note').value });
+  setLoading('btn-tf-submit', false);
+  if (res && res.ok) { toast(res.msg,'success'); closeModal('modal-transfer'); refreshAll(); }
+  else if (res) toast(res.msg,'error');
+}
+async function submitAdjust() {
+  const itemId  = document.getElementById('adj-item').value;
+  const factory = document.getElementById('adj-fac').value;
+  const after   = document.getElementById('adj-qty').value;
+  if (after==='') { toast('조정 수량을 입력하세요','error'); return; }
+  setLoading('btn-adj-submit', true);
+  const res = await api('adjust', { itemId, factory, after, reason:document.getElementById('adj-reason').value, worker:document.getElementById('adj-worker').value, note:document.getElementById('adj-note').value });
+  setLoading('btn-adj-submit', false);
+  if (res && res.ok) { toast(res.msg,'success'); closeModal('modal-adjust'); refreshAll(); }
+  else if (res) toast(res.msg,'error');
+}
+async function submitProduct() {
+  const data = { code:document.getElementById('pm-code').value.trim(), name:document.getElementById('pm-name').value.trim(), cat:document.getElementById('pm-cat').value, unit:document.getElementById('pm-unit').value, safe:document.getElementById('pm-safe').value, k1:document.getElementById('pm-k1').value, k2:document.getElementById('pm-k2').value, k3:document.getElementById('pm-k3').value, memo:document.getElementById('pm-memo').value };
+  if (!data.code||!data.name) { toast('품목코드와 품목명을 입력하세요','error'); return; }
+  setLoading('btn-pm-submit', true);
+  const action = STATE.editingProductId ? 'editProduct' : 'addProduct';
+  if (STATE.editingProductId) data.id = STATE.editingProductId;
+  const res = await api(action, data);
+  setLoading('btn-pm-submit', false);
+  if (res && res.ok) { toast(res.msg,'success'); closeModal('modal-product'); refreshAll(); }
+  else if (res) toast(res.msg,'error');
+}
+
+// ══════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════
+function saveSetup() {
+  const url = document.getElementById('setup-url').value.trim();
+  if (!url || !url.startsWith('https://')) { alert('올바른 URL을 입력해주세요'); return; }
+  CFG.apiUrl = url;
+  localStorage.setItem('wms_api_url', url);
+  document.getElementById('setup-screen').classList.remove('show');
+  refreshAll();
+}
+function saveSettings() {
+  CFG.user   = document.getElementById('set-user').value || CFG.user;
+  CFG.apiUrl = document.getElementById('set-api-url').value || CFG.apiUrl;
+  localStorage.setItem('wms_user', CFG.user);
+  localStorage.setItem('wms_api_url', CFG.apiUrl);
+  document.getElementById('current-user').textContent = CFG.user;
+  toast('설정 저장 완료','success');
+}
+
+// ══════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════
+function showLoading(msg='로딩 중...') { document.getElementById('loading-text').textContent=msg; document.getElementById('loading-overlay').classList.add('show'); }
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+function setLoading(btnId, loading) { const b=document.getElementById(btnId); if(b){b.disabled=loading;b.textContent=loading?'처리 중...':b.textContent.replace('처리 중...','');} }
+function toast(msg,type='info') { const el=document.createElement('div'); el.className=`toast ${type}`; el.textContent=msg; document.getElementById('toast-container').appendChild(el); setTimeout(()=>el.remove(),3500); }
+function n(obj, key) { return Number(obj[key])||0; }
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.addEventListener('load', () => {
+  // 설정 불러오기
+  document.getElementById('set-user').value    = CFG.user;
+  document.getElementById('set-api-url').value = CFG.apiUrl;
+  document.getElementById('current-user').textContent = CFG.user;
+
+  if (!CFG.apiUrl) {
+    document.getElementById('setup-screen').classList.add('show');
+  } else {
+    refreshAll();
+  }
+
+  // 30초마다 자동 새로고침
+  setInterval(refreshAll, 30000);
+});
+</script>
+</body>
+</html>
