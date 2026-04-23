@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WMS — 생산지원 창고관리시스템</title>
+<title>WMS — 창고관리시스템</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
   :root {
@@ -269,7 +269,6 @@
 </head>
 <body>
 
-<!-- SETUP SCREEN (최초 1회) -->
 <div id="setup-screen">
   <div class="setup-box">
     <div style="font-size:48px;margin-bottom:16px">📦</div>
@@ -284,16 +283,14 @@
   </div>
 </div>
 
-<!-- LOADING -->
 <div id="loading-overlay">
   <div class="spinner"></div>
   <div class="loading-text" id="loading-text">데이터 불러오는 중...</div>
 </div>
 
-<!-- SIDEBAR -->
 <div id="sidebar">
   <div class="logo">
-    <img src="https://harimpetfood.com/web/upload/share-image-1-dd90ce7c0e5497ba834a9ea1925c3c43.png"
+    <img src="https://harimpetfood.com/SkinImg/top_logo.gif"
          alt="하림펫푸드" style="width:100%;max-height:38px;object-fit:contain;object-position:left;margin-bottom:8px;filter:brightness(1.1)">
     <div class="logo-title">📦 WMS System</div>
     <div class="logo-sub" style="display:flex;align-items:center;gap:5px;margin-top:3px">
@@ -333,7 +330,6 @@
   </div>
 </div>
 
-<!-- MAIN -->
 <div id="main">
   <div id="topbar">
     <span class="page-title" id="page-title">대시보드</span>
@@ -347,7 +343,6 @@
   </div>
   <div id="content">
 
-    <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
       <div class="kpi-grid">
         <div class="kpi-card blue"><div class="kpi-icon">📦</div><div class="kpi-label">총 품목 수</div><div class="kpi-value" id="kpi-items">-</div><div class="kpi-sub">등록된 자재·제품</div></div>
@@ -380,7 +375,6 @@
       </div>
     </div>
 
-    <!-- INVENTORY -->
     <div id="page-inventory" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="inv-search" placeholder="🔍 품목명 또는 코드 검색..." oninput="renderInventory()">
@@ -390,7 +384,6 @@
       <div class="inv-cards" id="inv-cards"></div>
     </div>
 
-    <!-- INBOUND -->
     <div id="page-inbound" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="ib-search" placeholder="🔍 검색..." oninput="renderTablePage('inbound',1)">
@@ -402,7 +395,6 @@
       </div>
     </div>
 
-    <!-- OUTBOUND -->
     <div id="page-outbound" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="ob-search" placeholder="🔍 검색..." oninput="renderTablePage('outbound',1)">
@@ -414,7 +406,6 @@
       </div>
     </div>
 
-    <!-- TRANSFER -->
     <div id="page-transfer" class="page">
       <div class="filter-bar"><input class="filter-input" id="tf-search" placeholder="🔍 검색..." oninput="renderTablePage('transfer',1)"></div>
       <div class="table-wrap">
@@ -423,7 +414,6 @@
       </div>
     </div>
 
-    <!-- ADJUSTMENT -->
     <div id="page-adjustment" class="page">
       <div class="filter-bar"><input class="filter-input" id="adj-search" placeholder="🔍 검색..." oninput="renderTablePage('adjustment',1)"></div>
       <div class="table-wrap">
@@ -432,7 +422,6 @@
       </div>
     </div>
 
-    <!-- HISTORY -->
     <div id="page-history" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="hist-search" placeholder="🔍 품목, 처리자 검색..." oninput="renderTablePage('history',1)">
@@ -445,7 +434,6 @@
       </div>
     </div>
 
-    <!-- REPORT -->
     <div id="page-report" class="page">
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header"><span class="panel-title">명세서 옵션</span></div>
@@ -463,7 +451,6 @@
       <div id="report-preview"></div>
     </div>
 
-    <!-- PRODUCTS -->
     <div id="page-products" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="prod-search" placeholder="🔍 검색..." oninput="renderTablePage('products',1)">
@@ -475,7 +462,6 @@
       </div>
     </div>
 
-    <!-- ORDER MAIL -->
     <div id="page-order" class="page">
       <div class="dash-grid">
         <div class="panel">
@@ -496,7 +482,6 @@
       </div>
     </div>
 
-    <!-- PRINT ORDER (발주서) -->
     <div id="page-print-order" class="page">
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header"><span class="panel-title">🧾 발주서 작성</span></div>
@@ -513,7 +498,6 @@
         </div>
       </div>
 
-      <!-- 발주 품목 입력 -->
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header">
           <span class="panel-title">발주 품목</span>
@@ -538,14 +522,12 @@
         <button class="btn btn-primary" onclick="printDoc('po')">🖨️ 발주서 인쇄</button>
       </div>
 
-      <!-- 인쇄 미리보기 -->
       <div id="po-preview" class="panel" style="display:none">
         <div class="panel-header"><span class="panel-title">📄 미리보기</span></div>
         <div class="panel-body" id="po-preview-body"></div>
       </div>
     </div>
 
-    <!-- PRINT OUTBOUND (출고지시서) -->
     <div id="page-print-outbound" class="page">
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header"><span class="panel-title">📋 출고지시서 작성</span></div>
@@ -562,7 +544,6 @@
         </div>
       </div>
 
-      <!-- 출고 품목 입력 -->
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header">
           <span class="panel-title">출고 품목</span>
@@ -586,7 +567,6 @@
       </div>
     </div>
 
-    <!-- SETTINGS -->
     <div id="page-settings" class="page">
       <div class="panel">
         <div class="panel-header"><span class="panel-title">⚙️ 시스템 설정</span></div>
@@ -609,7 +589,6 @@
   </div>
 </div>
 
-<!-- ═══ MODALS ═══ -->
 <div class="modal-overlay" id="modal-inbound">
   <div class="modal">
     <div class="modal-header"><span class="modal-title">📥 입고 등록</span><button class="modal-close" onclick="closeModal('modal-inbound')">✕</button></div>
