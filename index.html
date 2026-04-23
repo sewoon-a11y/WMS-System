@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WMS — 창고관리시스템</title>
+<title>WMS — 생산지원 창고관리시스템</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
   :root {
@@ -269,6 +269,7 @@
 </head>
 <body>
 
+<!-- SETUP SCREEN (최초 1회) -->
 <div id="setup-screen">
   <div class="setup-box">
     <div style="font-size:48px;margin-bottom:16px">📦</div>
@@ -283,15 +284,20 @@
   </div>
 </div>
 
+<!-- LOADING -->
 <div id="loading-overlay">
   <div class="spinner"></div>
   <div class="loading-text" id="loading-text">데이터 불러오는 중...</div>
 </div>
 
+<!-- SIDEBAR -->
 <div id="sidebar">
   <div class="logo">
-    <img src="https://harimpetfood.com/SkinImg/top_logo.gif"
-         alt="하림펫푸드" style="width:100%;max-height:38px;object-fit:contain;object-position:left;margin-bottom:8px;filter:brightness(1.1)">
+    <img src="https://harimpetfood.com/SkinImg/m_top_logo.gif"
+         alt="하림펫푸드"
+         style="width:100%;max-height:36px;object-fit:contain;object-position:left center;margin-bottom:8px;filter:brightness(0) invert(1) drop-shadow(0 1px 4px rgba(37,99,235,.4))"
+         onerror="this.style.display='none';document.getElementById('logo-text-fallback').style.display='block'">
+    <div id="logo-text-fallback" style="display:none;font-size:16px;font-weight:900;color:#fff;letter-spacing:-0.5px;margin-bottom:8px">하림펫푸드</div>
     <div class="logo-title">📦 WMS System</div>
     <div class="logo-sub" style="display:flex;align-items:center;gap:5px;margin-top:3px">
       생산본부
@@ -308,21 +314,41 @@
   <nav>
     <div class="nav-section">개요</div>
     <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">🏠</span>대시보드</div>
+
     <div class="nav-section">재고 관리</div>
     <div class="nav-item" onclick="showPage('inventory')"><span class="icon">📊</span>재고 현황</div>
     <div class="nav-item" onclick="showPage('inbound')"><span class="icon">📥</span>입고 관리</div>
-    <div class="nav-item" onclick="showPage('outbound')"><span class="icon">📤</span>출고 관리</div>
-    <div class="nav-item" onclick="showPage('transfer')"><span class="icon">🔄</span>이동 처리</div>
+
+    <!-- 출고 그룹 -->
+    <div class="nav-group-title" id="nav-group-out" onclick="toggleNavGroup('out')">
+      <span class="icon">📤</span>출고 관리<span class="nav-arrow">▶</span>
+    </div>
+    <div class="nav-group-children" id="nav-children-out">
+      <div class="nav-item" onclick="showPage('outbound')"><span class="icon">📤</span>출고 처리</div>
+      <div class="nav-item" onclick="showPage('print-outbound')"><span class="icon">📋</span>출고지시서 출력</div>
+    </div>
+
+    <!-- 이동 그룹 -->
+    <div class="nav-group-title" id="nav-group-tf" onclick="toggleNavGroup('tf')">
+      <span class="icon">🔄</span>이동 관리<span class="nav-arrow">▶</span>
+    </div>
+    <div class="nav-group-children" id="nav-children-tf">
+      <div class="nav-item" onclick="showPage('transfer')"><span class="icon">🔄</span>이동 처리</div>
+      <div class="nav-item" onclick="showPage('print-transfer')"><span class="icon">📃</span>이동명세서 출력</div>
+    </div>
+
     <div class="nav-item" onclick="showPage('adjustment')"><span class="icon">⚖️</span>재고 조정</div>
+
     <div class="nav-section">이력 & 보고서</div>
     <div class="nav-item" onclick="showPage('history')"><span class="icon">📋</span>수불 이력</div>
     <div class="nav-item" onclick="showPage('report')"><span class="icon">📄</span>명세서 출력</div>
+
     <div class="nav-section">기준 정보</div>
-    <div class="nav-item" onclick="showPage('products')"><span class="icon">🗂️</span>품목 관리</div>
+    <div class="nav-item" onclick="showPage('products')"><span class="icon">🗂️</span>자재마스터</div>
     <div class="nav-item" onclick="showPage('order')"><span class="icon">📧</span>발주 메일</div>
+
     <div class="nav-section">출력 서류</div>
     <div class="nav-item" onclick="showPage('print-order')"><span class="icon">🧾</span>발주서 출력</div>
-    <div class="nav-item" onclick="showPage('print-outbound')"><span class="icon">📋</span>출고지시서 출력</div>
     <div class="nav-item" onclick="showPage('settings')"><span class="icon">⚙️</span>설정</div>
   </nav>
   <div class="sidebar-bottom">
@@ -330,6 +356,7 @@
   </div>
 </div>
 
+<!-- MAIN -->
 <div id="main">
   <div id="topbar">
     <span class="page-title" id="page-title">대시보드</span>
@@ -343,6 +370,7 @@
   </div>
   <div id="content">
 
+    <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
       <div class="kpi-grid">
         <div class="kpi-card blue"><div class="kpi-icon">📦</div><div class="kpi-label">총 품목 수</div><div class="kpi-value" id="kpi-items">-</div><div class="kpi-sub">등록된 자재·제품</div></div>
@@ -375,19 +403,26 @@
       </div>
     </div>
 
+    <!-- INVENTORY -->
     <div id="page-inventory" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="inv-search" placeholder="🔍 품목명 또는 코드 검색..." oninput="renderInventory()">
         <select class="filter-select" id="inv-cat" onchange="renderInventory()"><option value="">전체 분류</option><option>원자재</option><option>반제품</option><option>완제품</option><option>부자재</option></select>
         <select class="filter-select" id="inv-status" onchange="renderInventory()"><option value="">전체 상태</option><option value="low">부족</option><option value="ok">정상</option></select>
+        <button class="btn btn-excel" onclick="exportCSV('inventory')">⬇️ 엑셀 다운</button>
       </div>
       <div class="inv-cards" id="inv-cards"></div>
     </div>
 
+    <!-- INBOUND -->
     <div id="page-inbound" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="ib-search" placeholder="🔍 검색..." oninput="renderTablePage('inbound',1)">
         <select class="filter-select" id="ib-fac-f" onchange="renderTablePage('inbound',1)"><option value="">전체 공장</option><option>K1</option><option>K2</option><option>K3</option></select>
+        <input class="filter-input" type="date" id="ib-date-from" style="flex:0;width:130px" onchange="renderTablePage('inbound',1)">
+        <input class="filter-input" type="date" id="ib-date-to"   style="flex:0;width:130px" onchange="renderTablePage('inbound',1)">
+        <button class="btn btn-barcode" onclick="openBarcodeModal('inbound')">📷 바코드 입고</button>
+        <button class="btn btn-excel"   onclick="exportCSV('inbound')">⬇️ 엑셀 다운</button>
       </div>
       <div class="table-wrap">
         <div class="table-scroll"><table class="data-table"><thead><tr><th>입고번호</th><th>일시</th><th>품목명</th><th>공장</th><th class="text-right">수량</th><th>단위</th><th>공급업체</th><th>처리자</th><th>비고</th></tr></thead><tbody id="inbound-tbody"></tbody></table></div>
@@ -395,10 +430,15 @@
       </div>
     </div>
 
+    <!-- OUTBOUND -->
     <div id="page-outbound" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="ob-search" placeholder="🔍 검색..." oninput="renderTablePage('outbound',1)">
         <select class="filter-select" id="ob-fac-f" onchange="renderTablePage('outbound',1)"><option value="">전체 공장</option><option>K1</option><option>K2</option><option>K3</option></select>
+        <input class="filter-input" type="date" id="ob-date-from" style="flex:0;width:130px" onchange="renderTablePage('outbound',1)">
+        <input class="filter-input" type="date" id="ob-date-to"   style="flex:0;width:130px" onchange="renderTablePage('outbound',1)">
+        <button class="btn btn-barcode" onclick="openBarcodeModal('outbound')">📷 바코드 출고</button>
+        <button class="btn btn-excel"   onclick="exportCSV('outbound')">⬇️ 엑셀 다운</button>
       </div>
       <div class="table-wrap">
         <div class="table-scroll"><table class="data-table"><thead><tr><th>출고번호</th><th>일시</th><th>품목명</th><th>공장</th><th class="text-right">수량</th><th>단위</th><th>목적지</th><th>처리자</th><th>비고</th></tr></thead><tbody id="outbound-tbody"></tbody></table></div>
@@ -406,14 +446,22 @@
       </div>
     </div>
 
+    <!-- TRANSFER -->
     <div id="page-transfer" class="page">
-      <div class="filter-bar"><input class="filter-input" id="tf-search" placeholder="🔍 검색..." oninput="renderTablePage('transfer',1)"></div>
+      <div class="filter-bar">
+        <input class="filter-input" id="tf-search" placeholder="🔍 검색..." oninput="renderTablePage('transfer',1)">
+        <input class="filter-input" type="date" id="tf-date-from" style="flex:0;width:130px" onchange="renderTablePage('transfer',1)">
+        <input class="filter-input" type="date" id="tf-date-to"   style="flex:0;width:130px" onchange="renderTablePage('transfer',1)">
+        <button class="btn btn-barcode" onclick="openBarcodeModal('transfer')">📷 바코드 이동</button>
+        <button class="btn btn-excel"   onclick="exportCSV('transfer')">⬇️ 엑셀 다운</button>
+      </div>
       <div class="table-wrap">
         <div class="table-scroll"><table class="data-table"><thead><tr><th>이동번호</th><th>일시</th><th>품목명</th><th>출발</th><th>도착</th><th class="text-right">수량</th><th>단위</th><th>처리자</th><th>비고</th></tr></thead><tbody id="transfer-tbody"></tbody></table></div>
         <div class="pagination" id="transfer-pag"></div>
       </div>
     </div>
 
+    <!-- ADJUSTMENT -->
     <div id="page-adjustment" class="page">
       <div class="filter-bar"><input class="filter-input" id="adj-search" placeholder="🔍 검색..." oninput="renderTablePage('adjustment',1)"></div>
       <div class="table-wrap">
@@ -422,6 +470,7 @@
       </div>
     </div>
 
+    <!-- HISTORY -->
     <div id="page-history" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="hist-search" placeholder="🔍 품목, 처리자 검색..." oninput="renderTablePage('history',1)">
@@ -434,6 +483,7 @@
       </div>
     </div>
 
+    <!-- REPORT -->
     <div id="page-report" class="page">
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header"><span class="panel-title">명세서 옵션</span></div>
@@ -451,10 +501,12 @@
       <div id="report-preview"></div>
     </div>
 
+    <!-- PRODUCTS (자재마스터) -->
     <div id="page-products" class="page">
       <div class="filter-bar">
         <input class="filter-input" id="prod-search" placeholder="🔍 검색..." oninput="renderTablePage('products',1)">
         <select class="filter-select" id="prod-cat-f" onchange="renderTablePage('products',1)"><option value="">전체 분류</option><option>원자재</option><option>반제품</option><option>완제품</option><option>부자재</option></select>
+        <button class="btn btn-excel" onclick="exportCSV('products')">⬇️ 자재마스터 다운로드</button>
       </div>
       <div class="table-wrap">
         <div class="table-scroll"><table class="data-table"><thead><tr><th>코드</th><th>품목명</th><th>분류</th><th>단위</th><th class="text-right">안전재고</th><th class="text-right">K1</th><th class="text-right">K2</th><th class="text-right">K3</th><th>상태</th><th>편집</th></tr></thead><tbody id="products-tbody"></tbody></table></div>
@@ -462,6 +514,7 @@
       </div>
     </div>
 
+    <!-- ORDER MAIL -->
     <div id="page-order" class="page">
       <div class="dash-grid">
         <div class="panel">
@@ -482,6 +535,7 @@
       </div>
     </div>
 
+    <!-- PRINT ORDER (발주서) -->
     <div id="page-print-order" class="page">
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header"><span class="panel-title">🧾 발주서 작성</span></div>
@@ -498,6 +552,7 @@
         </div>
       </div>
 
+      <!-- 발주 품목 입력 -->
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header">
           <span class="panel-title">발주 품목</span>
@@ -522,12 +577,14 @@
         <button class="btn btn-primary" onclick="printDoc('po')">🖨️ 발주서 인쇄</button>
       </div>
 
+      <!-- 인쇄 미리보기 -->
       <div id="po-preview" class="panel" style="display:none">
         <div class="panel-header"><span class="panel-title">📄 미리보기</span></div>
         <div class="panel-body" id="po-preview-body"></div>
       </div>
     </div>
 
+    <!-- PRINT OUTBOUND (출고지시서) -->
     <div id="page-print-outbound" class="page">
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header"><span class="panel-title">📋 출고지시서 작성</span></div>
@@ -544,6 +601,7 @@
         </div>
       </div>
 
+      <!-- 출고 품목 입력 -->
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-header">
           <span class="panel-title">출고 품목</span>
@@ -567,8 +625,44 @@
       </div>
     </div>
 
+    <!-- PRINT TRANSFER (이동명세서) -->
+    <div id="page-print-transfer" class="page">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header"><span class="panel-title">📃 이동명세서 작성</span></div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">명세서 번호</label><input class="form-control" id="pt-no" placeholder="자동생성"></div>
+            <div class="form-group"><label class="form-label">이동일자</label><input class="form-control" type="date" id="pt-date"></div>
+            <div class="form-group"><label class="form-label">출발 공장</label><select class="form-control" id="pt-from"><option>K1</option><option>K2</option><option>K3</option></select></div>
+            <div class="form-group"><label class="form-label">도착 공장</label><select class="form-control" id="pt-to"><option>K2</option><option>K1</option><option>K3</option></select></div>
+            <div class="form-group"><label class="form-label">담당자</label><input class="form-control" id="pt-manager"></div>
+            <div class="form-group"><label class="form-label">운송방법</label><select class="form-control" id="pt-transport"><option>자체운송</option><option>외부운송</option><option>직접이동</option></select></div>
+            <div class="form-group full"><label class="form-label">이동 사유 / 비고</label><textarea class="form-control" id="pt-note" rows="2"></textarea></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header"><span class="panel-title">이동 품목</span><button class="btn btn-primary" onclick="addPtItem()">＋ 품목 추가</button></div>
+        <div class="panel-body">
+          <table class="data-table" style="width:100%">
+            <thead><tr><th>품목명</th><th>단위</th><th class="text-right">이동수량</th><th>확인수량</th><th>비고</th><th></th></tr></thead>
+            <tbody id="pt-items-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px">
+        <button class="btn btn-ghost" onclick="loadFromTransfer()">🔄 최근이동 불러오기</button>
+        <button class="btn btn-primary" onclick="printDoc('pt')">🖨️ 이동명세서 인쇄</button>
+      </div>
+      <div id="pt-preview" class="panel" style="display:none">
+        <div class="panel-header"><span class="panel-title">📄 미리보기</span></div>
+        <div class="panel-body" id="pt-preview-body"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
     <div id="page-settings" class="page">
-      <div class="panel">
+      <div class="panel" style="margin-bottom:16px">
         <div class="panel-header"><span class="panel-title">⚙️ 시스템 설정</span></div>
         <div class="panel-body">
           <div class="form-grid">
@@ -584,11 +678,70 @@
           </div>
         </div>
       </div>
+
+      <!-- 바코드 설정 -->
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">📷 바코드 스캐너 설정</span></div>
+        <div class="panel-body">
+          <p class="text-sm text-muted" style="margin-bottom:14px">바코드 리더기 입력 형식을 설정합니다. USB 바코드 리더기 연결 후 사용하세요.</p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">바코드 총 길이</label>
+              <input class="form-control" type="number" id="bc-length" placeholder="예: 13" min="1" max="50">
+              <small class="text-muted" style="font-size:10px;margin-top:3px;display:block">바코드 전체 자리수 (0이면 길이 무제한)</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">품목코드 시작 위치</label>
+              <input class="form-control" type="number" id="bc-start" placeholder="예: 1" min="1">
+              <small class="text-muted" style="font-size:10px;margin-top:3px;display:block">1부터 시작 (좌측 기준)</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">품목코드 끝 위치</label>
+              <input class="form-control" type="number" id="bc-end" placeholder="예: 7" min="1">
+              <small class="text-muted" style="font-size:10px;margin-top:3px;display:block">0이면 끝까지</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">수량 위치 (시작-끝)</label>
+              <input class="form-control" id="bc-qty-pos" placeholder="예: 8-10 (없으면 공란)">
+              <small class="text-muted" style="font-size:10px;margin-top:3px;display:block">바코드 내 수량 포함 시 입력</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">입력 종료 신호</label>
+              <select class="form-control" id="bc-terminator">
+                <option value="Enter">Enter (대부분의 리더기)</option>
+                <option value="Tab">Tab</option>
+                <option value="None">없음 (길이로만 판단)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">스캔 후 동작</label>
+              <select class="form-control" id="bc-action">
+                <option value="auto">자동 등록</option>
+                <option value="confirm">확인 후 등록</option>
+              </select>
+            </div>
+          </div>
+          <div class="separator"></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-primary" onclick="saveBarcodeSettings()">바코드 설정 저장</button>
+            <button class="btn btn-ghost" onclick="testBarcode()">🧪 바코드 테스트</button>
+            <span class="text-sm text-muted" id="bc-test-result"></span>
+          </div>
+          <div class="separator"></div>
+          <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--text2)">
+            <strong>💡 설정 예시</strong><br>
+            바코드: <span class="font-mono" style="color:var(--accent2)">8801234567890</span> (13자리 EAN-13)<br>
+            품목코드: 3~9번째 자리 → 시작:3, 끝:9<br>
+            수량 없음 → 수량 위치 공란, 입고 시 수량 직접 입력
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
 </div>
 
+<!-- ═══ MODALS ═══ -->
 <div class="modal-overlay" id="modal-inbound">
   <div class="modal">
     <div class="modal-header"><span class="modal-title">📥 입고 등록</span><button class="modal-close" onclick="closeModal('modal-inbound')">✕</button></div>
@@ -689,6 +842,27 @@
 
 <div id="toast-container"></div>
 
+<!-- 바코드 모달 -->
+<div class="modal-overlay" id="modal-barcode">
+  <div class="modal" style="width:480px">
+    <div class="modal-header">
+      <span class="modal-title" id="bc-modal-title">📷 바코드 스캔</span>
+      <button class="modal-close" onclick="closeModal('modal-barcode')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-sm text-muted" style="margin-bottom:10px">바코드 리더기를 연결하고 아래 입력창에 커서를 두세요. 스캔하면 자동 인식됩니다.</p>
+      <input class="form-control" id="bc-modal-input" placeholder="바코드 스캔 대기 중..." autocomplete="off"
+        onkeydown="if(event.key==='Enter'){processBarcodeInput(this.value)}"
+        style="font-size:16px;letter-spacing:2px;font-family:var(--mono)">
+      <div id="bc-modal-result"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-barcode')">닫기</button>
+      <button class="btn btn-primary" onclick="processBarcodeInput(document.getElementById('bc-modal-input').value)">수동 확인</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════
 // CONFIG & STATE
@@ -762,17 +936,18 @@ async function refreshAll(silent = false) {
 // ══════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════
-const PAGE_TITLES = { dashboard:'대시보드', inventory:'재고 현황', inbound:'입고 관리', outbound:'출고 관리', transfer:'이동 처리', adjustment:'재고 조정', history:'수불 이력', report:'명세서 출력', products:'품목 관리', order:'발주 메일', 'print-order':'발주서 출력', 'print-outbound':'출고지시서 출력', settings:'설정' };
+const PAGE_TITLES = { dashboard:'대시보드', inventory:'재고 현황', inbound:'입고 관리', outbound:'출고 처리', transfer:'이동 처리', adjustment:'재고 조정', history:'수불 이력', report:'명세서 출력', products:'자재마스터', order:'발주 메일', 'print-order':'발주서 출력', 'print-outbound':'출고지시서 출력', 'print-transfer':'이동명세서 출력', settings:'설정' };
 const PAGE_ACTIONS = {
-  inventory:        `<button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
-  inbound:          `<button class="btn btn-success" onclick="openInboundModal()">＋ 입고 등록</button>`,
-  outbound:         `<button class="btn btn-danger"  onclick="openOutboundModal()">＋ 출고 등록</button>`,
-  transfer:         `<button class="btn btn-primary" onclick="openTransferModal()">＋ 이동 처리</button>`,
+  inventory:        `<button class="btn btn-excel" onclick="exportCSV('inventory')">⬇️ 엑셀 다운</button><button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
+  inbound:          `<button class="btn btn-barcode" onclick="openBarcodeModal('inbound')">📷 바코드 입고</button><button class="btn btn-success" onclick="openInboundModal()">＋ 입고 등록</button>`,
+  outbound:         `<button class="btn btn-barcode" onclick="openBarcodeModal('outbound')">📷 바코드 출고</button><button class="btn btn-danger" onclick="openOutboundModal()">＋ 출고 등록</button>`,
+  transfer:         `<button class="btn btn-barcode" onclick="openBarcodeModal('transfer')">📷 바코드 이동</button><button class="btn btn-primary" onclick="openTransferModal()">＋ 이동 처리</button>`,
   adjustment:       `<button class="btn btn-primary" onclick="openAdjustModal()">＋ 재고 조정</button>`,
   report:           `<button class="btn btn-ghost" onclick="window.print()">🖨️ 인쇄</button>`,
-  products:         `<button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
+  products:         `<button class="btn btn-excel" onclick="exportCSV('products')">⬇️ 다운로드</button><button class="btn btn-primary" onclick="openProductModal()">＋ 품목 등록</button>`,
   'print-order':    `<button class="btn btn-primary" onclick="printDoc('po')">🖨️ 발주서 인쇄</button>`,
   'print-outbound': `<button class="btn btn-primary" onclick="printDoc('oi')">🖨️ 출고지시서 인쇄</button>`,
+  'print-transfer': `<button class="btn btn-primary" onclick="printDoc('pt')">🖨️ 이동명세서 인쇄</button>`,
 };
 
 let currentPage = 'dashboard';
@@ -801,6 +976,7 @@ function renderCurrentPage() {
   if (currentPage === 'order')          renderOrderPage();
   if (currentPage === 'print-order')    initPrintOrder();
   if (currentPage === 'print-outbound') initPrintOutbound();
+  if (currentPage === 'print-transfer') initPrintTransfer();
 }
 
 // ══════════════════════════════════════════════
@@ -1390,6 +1566,172 @@ function printDoc(type) {
 
   // 인쇄 실행
   setTimeout(() => window.print(), 300);
+}
+
+// ══════════════════════════════════════════════
+// 🧭 네비게이션 그룹 토글
+// ══════════════════════════════════════════════
+function toggleNavGroup(key) {
+  const title    = document.getElementById('nav-group-' + key);
+  const children = document.getElementById('nav-children-' + key);
+  if (!title || !children) return;
+  const isOpen = children.classList.contains('open');
+  title.classList.toggle('open', !isOpen);
+  children.classList.toggle('open', !isOpen);
+}
+
+// ══════════════════════════════════════════════
+// 📷 바코드 스캐너 모달
+// ══════════════════════════════════════════════
+let barcodeTarget = 'inbound'; // 'inbound' | 'outbound' | 'transfer'
+let barcodeBuffer = '';
+let barcodeTimer  = null;
+
+function openBarcodeModal(type) {
+  barcodeTarget = type;
+  const titles = { inbound:'📥 바코드 입고', outbound:'📤 바코드 출고', transfer:'🔄 바코드 이동' };
+  document.getElementById('bc-modal-title').textContent = titles[type] || '바코드 스캔';
+  document.getElementById('bc-modal-input').value = '';
+  document.getElementById('bc-modal-result').innerHTML = '';
+  openModal('modal-barcode');
+  setTimeout(() => document.getElementById('bc-modal-input').focus(), 100);
+}
+
+function processBarcodeInput(val) {
+  if (!val) return;
+  const cfg = getBarcodeConfig();
+  let code = val.trim();
+  if (cfg.start && cfg.end) {
+    code = code.substring(cfg.start - 1, cfg.end);
+  } else if (cfg.start) {
+    code = code.substring(cfg.start - 1);
+  }
+
+  // 품목 찾기
+  const prod = STATE.products.find(p =>
+    (p['품목코드']||'').toLowerCase() === code.toLowerCase() ||
+    (p['품목명']||'').toLowerCase() === code.toLowerCase()
+  );
+
+  const resultEl = document.getElementById('bc-modal-result');
+  if (prod) {
+    resultEl.innerHTML = `<div style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:12px;margin-top:10px">
+      <div style="color:var(--green);font-weight:700;margin-bottom:4px">✅ 품목 인식됨</div>
+      <div style="font-size:13px">${prod['품목명']} (${prod['품목코드']})</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">K1:${prod['K1재고']||0} / K2:${prod['K2재고']||0} / K3:${prod['K3재고']||0} ${prod['단위']||''}</div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <label style="font-size:12px">수량:</label>
+        <input class="form-control" type="number" id="bc-qty-input" value="1" min="1" style="width:80px">
+        <label style="font-size:12px">공장:</label>
+        <select class="form-control" id="bc-fac-input" style="width:70px"><option>K1</option><option>K2</option><option>K3</option></select>
+        <button class="btn btn-success" onclick="submitBarcodeEntry('${prod['품목ID']}')">등록</button>
+      </div>
+    </div>`;
+  } else {
+    resultEl.innerHTML = `<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:6px;padding:12px;margin-top:10px;color:var(--red)">
+      ❌ 품목 코드 <strong>${code}</strong> 를 찾을 수 없습니다.<br>
+      <small style="color:var(--text3)">원본 바코드: ${val}</small>
+    </div>`;
+  }
+  document.getElementById('bc-modal-input').value = '';
+}
+
+async function submitBarcodeEntry(itemId) {
+  const qty    = document.getElementById('bc-qty-input').value;
+  const fac    = document.getElementById('bc-fac-input').value;
+  const worker = CFG.user;
+  const date   = new Date().toISOString().replace('T',' ').slice(0,16);
+
+  let res;
+  if (barcodeTarget === 'inbound') {
+    res = await api('inbound', { itemId, factory:fac, qty, date, vendor:'바코드입고', worker, note:'바코드 스캔' });
+  } else if (barcodeTarget === 'outbound') {
+    res = await api('outbound', { itemId, factory:fac, qty, date, dest:'바코드출고', worker, note:'바코드 스캔' });
+  } else {
+    const to = fac === 'K1' ? 'K2' : 'K1';
+    res = await api('transfer', { itemId, from:fac, to, qty, date, worker, note:'바코드 이동' });
+  }
+  if (res && res.ok) {
+    toast(res.msg, 'success');
+    document.getElementById('bc-modal-result').innerHTML = `<div style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:10px;margin-top:10px;color:var(--green)">✅ ${res.msg}</div>`;
+    refreshAll(true);
+  } else if (res) {
+    toast(res.msg, 'error');
+  }
+}
+
+function getBarcodeConfig() {
+  return {
+    length: parseInt(localStorage.getItem('bc_length')) || 0,
+    start:  parseInt(localStorage.getItem('bc_start'))  || 0,
+    end:    parseInt(localStorage.getItem('bc_end'))    || 0,
+    action: localStorage.getItem('bc_action') || 'confirm',
+  };
+}
+function saveBarcodeSettings() {
+  localStorage.setItem('bc_length', document.getElementById('bc-length').value || '0');
+  localStorage.setItem('bc_start',  document.getElementById('bc-start').value  || '0');
+  localStorage.setItem('bc_end',    document.getElementById('bc_end') ? document.getElementById('bc_end').value : document.getElementById('bc-end').value || '0');
+  localStorage.setItem('bc_action', document.getElementById('bc-action').value);
+  localStorage.setItem('bc_terminator', document.getElementById('bc-terminator').value);
+  toast('바코드 설정 저장 완료', 'success');
+}
+function testBarcode() {
+  const cfg = getBarcodeConfig();
+  const sample = '8801234567890';
+  let code = sample;
+  if (cfg.start && cfg.end) code = sample.substring(cfg.start-1, cfg.end);
+  else if (cfg.start) code = sample.substring(cfg.start-1);
+  document.getElementById('bc-test-result').textContent = `샘플(${sample}) → 추출: "${code}"`;
+}
+
+// ══════════════════════════════════════════════
+// 📃 이동명세서
+// ══════════════════════════════════════════════
+let ptItems = [];
+function initPrintTransfer() {
+  const today = new Date().toISOString().slice(0,10);
+  if (!document.getElementById('pt-date').value)    document.getElementById('pt-date').value = today;
+  if (!document.getElementById('pt-manager').value) document.getElementById('pt-manager').value = CFG.user;
+  if (!document.getElementById('pt-no').value)      document.getElementById('pt-no').value = 'TM-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
+  if (ptItems.length === 0) addPtItem();
+  renderPtItems();
+}
+function addPtItem(name='', unit='', qty=0, actual=0, note='') {
+  ptItems.push({ name, unit, qty, actual, note });
+  renderPtItems();
+}
+function loadFromTransfer() {
+  const recent = STATE.transfers.slice(0, 5);
+  if (!recent.length) { toast('이동 이력이 없습니다','info'); return; }
+  recent.forEach(r => ptItems.push({ name:r['품목명']||'', unit:r['단위']||'', qty:Number(r['수량']||0), actual:0, note:'' }));
+  renderPtItems();
+  toast(`최근 이동 ${recent.length}건 불러옴`, 'success');
+}
+function renderPtItems() {
+  const tbody = document.getElementById('pt-items-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = ptItems.map((item,i) => `
+    <tr>
+      <td><input class="form-control" value="${item.name}" oninput="ptItems[${i}].name=this.value" style="min-width:140px"></td>
+      <td><input class="form-control" value="${item.unit}" oninput="ptItems[${i}].unit=this.value" style="width:70px"></td>
+      <td><input class="form-control num" type="number" value="${item.qty}" oninput="ptItems[${i}].qty=Number(this.value)" style="width:100px"></td>
+      <td><input class="form-control num" type="number" value="${item.actual}" oninput="ptItems[${i}].actual=Number(this.value)" placeholder="실이동" style="width:100px"></td>
+      <td><input class="form-control" value="${item.note}" oninput="ptItems[${i}].note=this.value" style="min-width:100px"></td>
+      <td><button class="btn btn-ghost" style="padding:4px 8px;color:var(--red)" onclick="ptItems.splice(${i},1);renderPtItems()">✕</button></td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:16px">품목을 추가하세요</td></tr>';
+}
+
+// ══════════════════════════════════════════════
+// 설정 페이지 초기값 로드
+// ══════════════════════════════════════════════
+function initSettingsPage() {
+  const el = (id) => document.getElementById(id);
+  if (el('bc-length'))     el('bc-length').value     = localStorage.getItem('bc_length') || '';
+  if (el('bc-start'))      el('bc-start').value      = localStorage.getItem('bc_start')  || '';
+  if (el('bc-end'))        el('bc-end').value        = localStorage.getItem('bc_end')    || '';
+  if (el('bc-action'))     el('bc-action').value     = localStorage.getItem('bc_action') || 'confirm';
+  if (el('bc-terminator')) el('bc-terminator').value = localStorage.getItem('bc_terminator') || 'Enter';
 }
 
 // ══════════════════════════════════════════════
