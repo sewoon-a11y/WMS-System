@@ -43,6 +43,25 @@
   .online-dot{width:6px;height:6px;background:var(--green);border-radius:50%;display:inline-block;margin-right:5px;animation:pulse 2s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
+  /* LIVE 배지 */
+  .live-badge {
+    display:inline-flex; align-items:center; gap:4px;
+    background:rgba(16,185,129,.15); border:1px solid rgba(16,185,129,.4);
+    color:#34d399; font-size:9px; font-weight:800;
+    padding:2px 6px; border-radius:10px; letter-spacing:1px;
+    font-family:var(--mono);
+  }
+  .live-dot {
+    width:6px; height:6px; border-radius:50%; background:#10b981;
+    flex-shrink:0;
+    box-shadow:0 0 6px #10b981;
+    animation:livepulse 1.4s ease-in-out infinite;
+  }
+  @keyframes livepulse {
+    0%,100%{ opacity:1; transform:scale(1); box-shadow:0 0 4px #10b981; }
+    50%    { opacity:.5; transform:scale(1.3); box-shadow:0 0 10px #10b981; }
+  }
+
   /* ── MAIN ── */
   #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
   #topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
@@ -274,8 +293,15 @@
 <!-- SIDEBAR -->
 <div id="sidebar">
   <div class="logo">
+    <img src="https://harimpetfood.com/web/upload/share-image-1-dd90ce7c0e5497ba834a9ea1925c3c43.png"
+         alt="하림펫푸드" style="width:100%;max-height:38px;object-fit:contain;object-position:left;margin-bottom:8px;filter:brightness(1.1)">
     <div class="logo-title">📦 WMS System</div>
-    <div class="logo-sub">생산지원1팀 · 실시간연동</div>
+    <div class="logo-sub" style="display:flex;align-items:center;gap:5px;margin-top:3px">
+      생산본부
+      <span class="live-badge">
+        <span class="live-dot"></span>LIVE
+      </span>
+    </div>
     <div class="factory-badges">
       <span class="fbadge k1">K1</span>
       <span class="fbadge k2">K2</span>
@@ -733,17 +759,16 @@ function setSyncState(state) {
   else                      { dot.className = 'sync-dot error'; label.textContent = '연결 오류'; }
 }
 
-async function refreshAll() {
-  showLoading('데이터 불러오는 중...');
+async function refreshAll(silent = false) {
+  if (!silent) showLoading('데이터 불러오는 중...');
   const res = await api('getAllData');
-  hideLoading();
+  if (!silent) hideLoading();
   if (!res || !res.ok) return;
   STATE.products    = res.products    || [];
   STATE.inbound     = res.inbound     || [];
   STATE.outbound    = res.outbound    || [];
   STATE.transfers   = res.transfers   || [];
   STATE.adjustments = res.adjustments || [];
-  // rebuild combined history
   STATE.history = [
     ...STATE.inbound.map(r => ({ ...r, 유형: '입고', 공장: r['공장'], 수량: r['수량'], 단위: r['단위'], 처리자: r['처리자'], 비고: r['비고'], 일시: r['일시'] })),
     ...STATE.outbound.map(r => ({ ...r, 유형: '출고', 공장: r['공장'], 수량: -Number(r['수량']), 단위: r['단위'], 처리자: r['처리자'], 비고: r['비고'], 일시: r['일시'] })),
@@ -752,7 +777,7 @@ async function refreshAll() {
   ].sort((a,b) => String(b['일시']||'').localeCompare(String(a['일시']||'')));
 
   renderCurrentPage();
-  toast('데이터 업데이트 완료', 'success');
+  if (!silent) toast('데이터 업데이트 완료', 'success');
 }
 
 // ══════════════════════════════════════════════
@@ -1014,8 +1039,8 @@ function buildReport() {
 
   document.getElementById('report-preview').innerHTML=`
     <div class="report-header-print">
-      <div class="report-title-area"><h2>${title}</h2><p>생산지원1팀 · WMS System</p></div>
-      <div class="report-meta">출력일: ${today}<br>기간: ${from||'-'} ~ ${to||'-'}<br>공장: ${fac||'전체'}<br>담당: ${CFG.user}</div>
+      <div class="report-title-area"><h2>${title}</h2><p>생산본부 · WMS System</p></div>
+      <div class="report-meta">출력일: ${today}<br>기간: ${from||'-'} ~ ${to||'-'}<br>공장: ${fac||'전체'}<br>담당: ${CFG.user}<br>부서: 생산본부</div>
     </div>
     <div class="table-wrap">${tableHTML}</div>`;
 }
@@ -1315,7 +1340,7 @@ function printDoc(type) {
             <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
           </table>
           <div class="print-company">
-            <div style="font-size:16px;font-weight:700;margin-bottom:4px">생산지원1팀</div>
+            <div style="font-size:16px;font-weight:700;margin-bottom:4px">생산본부</div>
             <div style="font-size:12px">발주일: ${date}</div>
           </div>
         </div>
@@ -1374,7 +1399,7 @@ function printDoc(type) {
             <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
           </table>
           <div class="print-company">
-            <div style="font-size:16px;font-weight:700;margin-bottom:4px">생산지원1팀</div>
+            <div style="font-size:16px;font-weight:700;margin-bottom:4px">생산본부</div>
             <div style="font-size:12px">출고일: ${date}</div>
           </div>
         </div>
@@ -1432,18 +1457,29 @@ window.addEventListener('load', () => {
     refreshAll();
   }
 
-  // 30초마다 자동 새로고침 (모달 열림 or 입력 중이면 건너뜀)
-  setInterval(() => {
-    const modalOpen    = document.querySelector('.modal-overlay.open');
-    const tag          = document.activeElement?.tagName || '';
-    const inputFocused = ['INPUT','TEXTAREA','SELECT'].includes(tag);
-    if (modalOpen || inputFocused) {
-      // 사용 중 — 건너뜀, 상단에 조용히 표시
-      document.getElementById('sync-label').textContent = '대기 중 (입력 중)';
-      return;
-    }
-    refreshAll();
-  }, 30000);
+  // ── 활동 기반 스마트 자동 새로고침 ──
+  // 마우스/키보드 움직임 감지 → 10초 후 백그라운드 조용히 갱신
+  // 모달 열림 or 입력 중이면 절대 갱신 안 함
+  let activityTimer = null;
+  let lastActivity  = Date.now();
+
+  function resetActivityTimer() {
+    lastActivity = Date.now();
+    clearTimeout(activityTimer);
+    activityTimer = setTimeout(() => {
+      const modalOpen    = document.querySelector('.modal-overlay.open');
+      const tag          = document.activeElement?.tagName || '';
+      const inputFocused = ['INPUT','TEXTAREA','SELECT'].includes(tag);
+      if (!modalOpen && !inputFocused) {
+        refreshAll(true); // silent 모드 — 스피너/토스트 없이 조용히 갱신
+      }
+    }, 10000); // 활동 멈춘 후 10초 뒤 갱신
+  }
+
+  ['mousemove','mousedown','keydown','scroll','touchstart'].forEach(evt =>
+    document.addEventListener(evt, resetActivityTimer, { passive: true })
+  );
+  resetActivityTimer(); // 첫 진입 시 타이머 시작
 });
 </script>
 </body>
